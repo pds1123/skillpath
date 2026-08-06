@@ -1,0 +1,92 @@
+// Sample AWS Cloud Practitioner (CLF-C02) items — hand-written for demo.
+// Full AWS question data is NOT included in this repository.
+
+import type { Question } from './questions';
+
+export const QUESTIONS_AWS: Question[] = [
+  {
+    id: 10001,
+    certification: 'CLF-C02',
+    type: 'multiple_choice',
+    question: 'Which AWS service is used for object storage?',
+    options: {
+      A: 'Amazon EBS',
+      B: 'Amazon EFS',
+      C: 'Amazon S3',
+      D: 'Amazon FSx',
+    },
+    correct_answer: ['C'],
+    answer_text: 'Amazon S3 (Simple Storage Service) stores data as objects in buckets. EBS is block storage attached to EC2; EFS and FSx are file storage.',
+    community_vote: '',
+    domain: 'Cloud Technology & Services',
+    mode: 'quiz',
+  },
+  {
+    id: 10002,
+    certification: 'CLF-C02',
+    type: 'multiple_choice',
+    question: 'Under the AWS Shared Responsibility Model, who is responsible for patching the guest operating system on an Amazon EC2 instance?',
+    options: {
+      A: 'AWS',
+      B: 'The customer',
+      C: 'A shared responsibility',
+      D: 'The AWS Support team',
+    },
+    correct_answer: ['B'],
+    answer_text: 'AWS manages the physical infrastructure and hypervisor. Guest OS patching on EC2 is a customer responsibility.',
+    community_vote: '',
+    domain: 'Security & Compliance',
+    mode: 'quiz',
+  },
+  {
+    id: 10003,
+    certification: 'CLF-C02',
+    type: 'multiple_choice',
+    question: 'Which EC2 purchasing option can offer the deepest discount but may be reclaimed by AWS with a short warning?',
+    options: {
+      A: 'On-Demand',
+      B: 'Reserved Instances',
+      C: 'Savings Plans',
+      D: 'Spot Instances',
+    },
+    correct_answer: ['D'],
+    answer_text: 'Spot Instances use spare capacity at up to 90% off; AWS can reclaim them with a 2-minute warning.',
+    community_vote: '',
+    domain: 'Billing, Pricing & Support',
+    mode: 'quiz',
+  },
+  {
+    id: 10004,
+    certification: 'CLF-C02',
+    type: 'multiple_choice',
+    question: 'Which service centrally manages access permissions to AWS resources?',
+    options: {
+      A: 'Amazon Cognito',
+      B: 'AWS IAM',
+      C: 'AWS KMS',
+      D: 'AWS Config',
+    },
+    correct_answer: ['B'],
+    answer_text: 'AWS Identity and Access Management (IAM) controls who can do what on AWS resources through users, groups, roles, and policies.',
+    community_vote: '',
+    domain: 'Security & Compliance',
+    mode: 'quiz',
+  },
+  {
+    id: 10005,
+    certification: 'CLF-C02',
+    type: 'multiple_choice',
+    question: 'Which AWS support plan provides a dedicated Technical Account Manager (TAM)?',
+    options: {
+      A: 'Basic',
+      B: 'Developer',
+      C: 'Business',
+      D: 'Enterprise',
+    },
+    correct_answer: ['D'],
+    answer_text: 'The Enterprise Support plan includes a dedicated TAM. Enterprise On-Ramp offers a pooled TAM; lower tiers do not.',
+    community_vote: '',
+    domain: 'Billing, Pricing & Support',
+    mode: 'quiz',
+  },
+];

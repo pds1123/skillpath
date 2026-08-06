@@ -1,0 +1,63 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+dist-ssr
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.local
+
+# ─── Private data — NEVER commit ─────────────────────────────────────────────
+# The real question banks, interactive data, image manifest, and question
+# images are kept locally only. Public repo uses the *.example.ts stubs.
+src/data/questions.ts
+src/data/questions_aws.ts
+src/data/interactiveData.ts
+src/data/questionImages.ts
+public/qimages/
+
+# PDFs & extraction artefacts (may contain full question data — never commit)
+*.pdf
+/tmp/
+scripts/*.output
+scripts/*_raw.txt
+scripts/*_raw.json
+scripts/*_checkpoint.json
+questions_raw.json
+skills-lock.json
+
+# Unrelated notes/docs that ended up in this folder
+MBIE_*.md
+NOTES.md
+TODO.md
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# ─── Tool / editor state — user-specific, do not commit ─────────────────────
+.claude/
+.agents/
+.cursor/
+.aider*
+CLAUDE.md
+AGENTS.md
