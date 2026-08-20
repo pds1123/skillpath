@@ -1,0 +1,180 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1320" viewBox="0 0 1920 1320" role="img" aria-labelledby="title description">
+  <title id="title">SkillPath database relationships</title>
+  <desc id="description">Relationship diagram for curriculum content, question bank, certification mappings, and user learning data.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8D94B6"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#20275F" flood-opacity="0.08"/>
+    </filter>
+    <style>
+      .title { font: 700 42px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #10142D; }
+      .subtitle { font: 400 20px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #626985; }
+      .group-title { font: 700 21px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #3F46C5; letter-spacing: 1px; }
+      .table-name { font: 650 20px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #151A3D; }
+      .table-note { font: 400 15px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #6A718D; }
+      .edge { fill: none; stroke: #8D94B6; stroke-width: 2.5; marker-end: url(#arrow); }
+      .edge-dashed { fill: none; stroke: #6B58D9; stroke-width: 2.5; stroke-dasharray: 8 7; marker-end: url(#arrow); }
+      .relation { font: 600 14px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #6A718D; }
+      .node { fill: #FFFFFF; stroke: #D8DBEC; stroke-width: 2; filter: url(#shadow); }
+      .node-primary { fill: #F0F1FF; stroke: #555DDA; stroke-width: 2.5; filter: url(#shadow); }
+      .node-cert { fill: #F5F0FF; stroke: #7964D9; stroke-width: 2; filter: url(#shadow); }
+      .panel { fill: #FAFAFE; stroke: #E3E5F1; stroke-width: 2; }
+    </style>
+  </defs>
+
+  <rect width="1920" height="1320" fill="#F5F6FC"/>
+  <text x="72" y="74" class="title">SkillPath Database Relationships</text>
+  <text x="72" y="108" class="subtitle">Curriculum first · certification as an optional mapping layer · progress stored as learning events</text>
+
+  <!-- Curriculum -->
+  <rect x="60" y="150" width="410" height="1090" rx="20" class="panel"/>
+  <text x="92" y="198" class="group-title">CURRICULUM CONTENT</text>
+
+  <rect x="92" y="238" width="346" height="104" rx="14" class="node-primary"/>
+  <text x="116" y="278" class="table-name">LearningAreas</text>
+  <text x="116" y="310" class="table-note">Top-level learning category</text>
+
+  <rect x="92" y="416" width="346" height="104" rx="14" class="node-primary"/>
+  <text x="116" y="456" class="table-name">LearningPaths</text>
+  <text x="116" y="488" class="table-note">Structured learning journey</text>
+
+  <rect x="92" y="594" width="346" height="104" rx="14" class="node-primary"/>
+  <text x="116" y="634" class="table-name">Modules</text>
+  <text x="116" y="666" class="table-note">Ordered curriculum modules</text>
+
+  <rect x="92" y="772" width="346" height="104" rx="14" class="node-primary"/>
+  <text x="116" y="812" class="table-name">Lessons</text>
+  <text x="116" y="844" class="table-note">Actual learning content</text>
+
+  <path d="M265 342 V416" class="edge"/>
+  <text x="280" y="384" class="relation">1 : many</text>
+  <path d="M265 520 V594" class="edge"/>
+  <text x="280" y="562" class="relation">1 : many</text>
+  <path d="M265 698 V772" class="edge"/>
+  <text x="280" y="740" class="relation">1 : many</text>
+
+  <!-- Question bank -->
+  <rect x="500" y="150" width="410" height="1090" rx="20" class="panel"/>
+  <text x="532" y="198" class="group-title">QUESTION BANK</text>
+
+  <rect x="532" y="238" width="346" height="104" rx="14" class="node-primary"/>
+  <text x="556" y="278" class="table-name">Questions</text>
+  <text x="556" y="310" class="table-note">Global ID and source key</text>
+
+  <rect x="532" y="416" width="346" height="104" rx="14" class="node"/>
+  <text x="556" y="456" class="table-name">QuestionOptions</text>
+  <text x="556" y="488" class="table-note">Options and server-only answers</text>
+
+  <rect x="532" y="594" width="346" height="104" rx="14" class="node"/>
+  <text x="556" y="634" class="table-name">QuestionModules</text>
+  <text x="556" y="666" class="table-note">Curriculum mapping</text>
+
+  <path d="M705 342 V416" class="edge"/>
+  <text x="720" y="384" class="relation">1 : many</text>
+  <path d="M705 342 C705 500 705 510 705 594" class="edge"/>
+  <path d="M438 646 H532" class="edge-dashed"/>
+  <text x="456" y="632" class="relation">maps</text>
+
+  <rect x="532" y="772" width="346" height="104" rx="14" class="node"/>
+  <text x="556" y="812" class="table-name">QuestionAttempts</text>
+  <text x="556" y="844" class="table-note">Every submitted answer</text>
+
+  <rect x="532" y="950" width="346" height="104" rx="14" class="node"/>
+  <text x="556" y="990" class="table-name">AttemptSelections</text>
+  <text x="556" y="1022" class="table-note">Selected option records</text>
+
+  <path d="M705 342 C900 342 900 824 878 824" class="edge-dashed"/>
+  <path d="M705 876 V950" class="edge"/>
+
+  <!-- Certification -->
+  <rect x="940" y="150" width="410" height="1090" rx="20" class="panel"/>
+  <text x="972" y="198" class="group-title">CERTIFICATION LAYER</text>
+
+  <rect x="972" y="238" width="346" height="104" rx="14" class="node-cert"/>
+  <text x="996" y="278" class="table-name">Certifications</text>
+  <text x="996" y="310" class="table-note">AZ-900, CLF-C02 and future exams</text>
+
+  <rect x="972" y="416" width="346" height="104" rx="14" class="node-cert"/>
+  <text x="996" y="456" class="table-name">CertificationModules</text>
+  <text x="996" y="488" class="table-note">Optional module alignment</text>
+
+  <rect x="972" y="594" width="346" height="104" rx="14" class="node-cert"/>
+  <text x="996" y="634" class="table-name">CertificationQuestions</text>
+  <text x="996" y="666" class="table-note">Optional exam mapping</text>
+
+  <path d="M1145 342 V416" class="edge-dashed"/>
+  <path d="M1145 342 C1325 342 1325 646 1318 646" class="edge-dashed"/>
+  <path d="M438 620 C760 540 850 468 972 468" class="edge-dashed"/>
+  <path d="M878 290 C950 290 900 646 972 646" class="edge-dashed"/>
+
+  <rect x="972" y="772" width="346" height="104" rx="14" class="node-cert"/>
+  <text x="996" y="812" class="table-name">ExamAttempts</text>
+  <text x="996" y="844" class="table-note">Timed exam result</text>
+
+  <rect x="972" y="950" width="346" height="104" rx="14" class="node-cert"/>
+  <text x="996" y="990" class="table-name">ExamAttemptQuestions</text>
+  <text x="996" y="1022" class="table-note">Fixed question order and history</text>
+
+  <path d="M1145 342 C1360 342 1360 824 1318 824" class="edge-dashed"/>
+  <path d="M1145 876 V950" class="edge"/>
+  <path d="M878 290 C930 290 900 1002 972 1002" class="edge-dashed"/>
+
+  <!-- User data -->
+  <rect x="1380" y="150" width="480" height="1090" rx="20" class="panel"/>
+  <text x="1412" y="198" class="group-title">USER LEARNING DATA</text>
+
+  <rect x="1412" y="238" width="416" height="104" rx="14" class="node-primary"/>
+  <text x="1436" y="278" class="table-name">Users</text>
+  <text x="1436" y="310" class="table-note">Account and password hash</text>
+
+  <rect x="1412" y="404" width="196" height="104" rx="14" class="node"/>
+  <text x="1436" y="444" class="table-name">Preferences</text>
+  <text x="1436" y="476" class="table-note">Timezone, theme</text>
+
+  <rect x="1632" y="404" width="196" height="104" rx="14" class="node"/>
+  <text x="1656" y="444" class="table-name">Enrollments</text>
+  <text x="1656" y="476" class="table-note">Continue position</text>
+
+  <rect x="1412" y="570" width="196" height="104" rx="14" class="node"/>
+  <text x="1436" y="610" class="table-name">Completions</text>
+  <text x="1436" y="642" class="table-note">Finished lessons</text>
+
+  <rect x="1632" y="570" width="196" height="104" rx="14" class="node"/>
+  <text x="1656" y="610" class="table-name">PracticeSessions</text>
+  <text x="1656" y="642" class="table-note">Quick / weak / review</text>
+
+  <path d="M1510 342 V404" class="edge"/>
+  <path d="M1730 342 V404" class="edge"/>
+  <path d="M1510 342 C1350 450 1360 622 1412 622" class="edge"/>
+  <path d="M1730 342 V570" class="edge"/>
+
+  <rect x="1412" y="748" width="196" height="104" rx="14" class="node"/>
+  <text x="1436" y="788" class="table-name">QuestionAttempts</text>
+  <text x="1436" y="820" class="table-note">Answer events</text>
+
+  <rect x="1632" y="748" width="196" height="104" rx="14" class="node"/>
+  <text x="1656" y="788" class="table-name">ExamAttempts</text>
+  <text x="1656" y="820" class="table-note">Exam history</text>
+
+  <path d="M1730 674 C1730 710 1608 712 1510 748" class="edge"/>
+  <path d="M1620 342 C1850 500 1850 700 1730 748" class="edge"/>
+  <path d="M878 824 H1412" class="edge-dashed"/>
+  <path d="M1318 824 H1632" class="edge-dashed"/>
+
+  <rect x="1412" y="926" width="416" height="104" rx="14" class="node"/>
+  <text x="1436" y="966" class="table-name">Derived Progress</text>
+  <text x="1436" y="998" class="table-note">Overall %, module %, weak areas and streak</text>
+
+  <path d="M1510 674 V926" class="edge-dashed"/>
+  <path d="M1510 852 V926" class="edge-dashed"/>
+  <path d="M1730 852 V926" class="edge-dashed"/>
+
+  <!-- Legend -->
+  <line x1="92" y1="1164" x2="154" y2="1164" class="edge"/>
+  <text x="170" y="1170" class="table-note">Parent / child relationship</text>
+  <line x1="500" y1="1164" x2="562" y2="1164" class="edge-dashed"/>
+  <text x="578" y="1170" class="table-note">Mapping or derived relationship</text>
+  <text x="1412" y="1170" class="table-note">All timestamps stored in UTC</text>
+</svg>

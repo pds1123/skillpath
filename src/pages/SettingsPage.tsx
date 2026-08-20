@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AppHeader } from '../components/AppHeader';
 
 interface Props {
   apiKey: string;
@@ -19,73 +20,83 @@ export function SettingsPage({ apiKey, onSave, onNavigate, onReset }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-lg mx-auto px-4 py-8">
-        <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => onNavigate('home')} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-            Home
-          </button>
-          <span className="font-semibold text-gray-900">Settings</span>
+    <div className="min-h-screen bg-[var(--sp-canvas)] text-[var(--sp-ink)]">
+      <AppHeader onNavigate={onNavigate} />
+      <main className="mx-auto max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
+        <div className="mb-8">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--sp-primary-700)]">Account</p>
+          <h1 className="text-3xl font-semibold tracking-[-0.035em] text-[var(--sp-ink-strong)] sm:text-4xl">Settings</h1>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--sp-muted)]">Manage optional learning tools and the progress saved for this browser.</p>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h2 className="font-semibold text-gray-900 mb-1">Claude API Key</h2>
-          <p className="text-xs text-gray-500 mb-4">
-            Required for AI Analysis on questions. Your key is stored only in your browser's localStorage and never sent anywhere except Anthropic's API.
-          </p>
-          <input
-            type="password"
-            value={draft}
-            onChange={e => setDraft(e.target.value)}
-            placeholder="sk-ant-..."
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-purple-400 mb-3 font-mono"
-          />
-          <button
-            onClick={save}
-            className="w-full py-2.5 rounded-lg bg-purple-600 text-white font-semibold text-sm hover:bg-purple-700 transition-colors"
-          >
-            {saved ? '✓ Saved!' : 'Save API Key'}
-          </button>
-          {draft && (
-            <button onClick={() => { setDraft(''); onSave(''); }} className="w-full mt-2 py-2 text-xs text-gray-400 hover:text-red-500 transition-colors">
-              Clear API key
-            </button>
-          )}
-          <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-500">
-            <p className="font-medium mb-1">How to get a key:</p>
-            <p>Visit console.anthropic.com → API Keys → Create Key</p>
-            <p className="mt-1">The AI Analysis uses claude-haiku-4-5 (fast & cheap, ~$0.001/question).</p>
-          </div>
-        </div>
+        <div className="overflow-hidden rounded-2xl bg-[var(--sp-surface)] ring-1 ring-[var(--sp-border)]">
+          <section className="p-6 sm:p-8" aria-labelledby="ai-settings-title">
+            <div className="max-w-xl">
+              <h2 id="ai-settings-title" className="text-lg font-semibold tracking-[-0.02em] text-[var(--sp-ink-strong)]">AI explanations</h2>
+              <p className="mt-2 text-sm leading-6 text-[var(--sp-muted)]">
+                Add a Claude API key to generate extra explanations in the question library. The key is stored in this browser and sent only to Anthropic when you request an explanation.
+              </p>
+              <label htmlFor="claude-api-key" className="mt-6 block text-sm font-medium text-[var(--sp-ink)]">Claude API key</label>
+              <input
+                id="claude-api-key"
+                type="password"
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                placeholder="sk-ant-..."
+                className="mt-2 w-full rounded-xl bg-[var(--sp-canvas)] px-4 py-3 font-mono text-sm text-[var(--sp-ink)] ring-1 ring-inset ring-[var(--sp-border-strong)] placeholder:text-[var(--sp-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--sp-primary-600)]"
+              />
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={save}
+                  className="rounded-xl bg-[var(--sp-primary-700)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--sp-primary-800)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sp-primary-600)]"
+                >
+                  {saved ? 'Saved' : 'Save API key'}
+                </button>
+                {draft && (
+                  <button type="button" onClick={() => { setDraft(''); onSave(''); }} className="rounded-lg px-3 py-2 text-sm font-medium text-[var(--sp-muted)] transition hover:bg-[var(--sp-primary-50)] hover:text-[var(--sp-ink)]">
+                    Remove key
+                  </button>
+                )}
+              </div>
+              <p className="mt-4 text-xs leading-5 text-[var(--sp-muted)]">Create a key at console.anthropic.com under API Keys. AI explanations use Claude Haiku.</p>
+            </div>
+          </section>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-5 mt-4">
-          <h2 className="font-semibold text-gray-900 mb-1">Progress Data</h2>
-          <p className="text-xs text-gray-500 mb-4">Clear all quiz results, exam history, and answer records stored in this browser.</p>
+          <section className="border-t border-[var(--sp-border)] p-6 sm:p-8" aria-labelledby="progress-settings-title">
+            <div className="max-w-xl">
+              <h2 id="progress-settings-title" className="text-lg font-semibold tracking-[-0.02em] text-[var(--sp-ink-strong)]">Progress data</h2>
+              <p className="mt-2 text-sm leading-6 text-[var(--sp-muted)]">Clear quiz results, assessment history and answer records stored for this account.</p>
           {!confirmReset ? (
             <button
+              type="button"
               onClick={() => setConfirmReset(true)}
-              className="w-full py-2.5 rounded-lg border-2 border-red-200 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors"
+              className="mt-5 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
             >
-              Clear All Progress
+              Clear progress
             </button>
           ) : (
-            <div className="space-y-2">
-              <p className="text-xs text-red-600 font-medium text-center">This cannot be undone. Are you sure?</p>
-              <div className="flex gap-2">
+            <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4" role="alert">
+              <p className="text-sm font-semibold text-red-800">Clear all progress?</p>
+              <p className="mt-1 text-sm text-red-700">This removes your results and assessment history and cannot be undone.</p>
+              <div className="mt-4 flex gap-2">
                 <button
+                  type="button"
                   onClick={() => setConfirmReset(false)}
-                  className="flex-1 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors"
+                  className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-[var(--sp-ink)] hover:bg-red-50"
                 >Cancel</button>
                 <button
+                  type="button"
                   onClick={() => { onReset(); setConfirmReset(false); }}
-                  className="flex-1 py-2.5 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors"
-                >Yes, Clear Everything</button>
+                  className="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800"
+                >Clear progress</button>
               </div>
             </div>
           )}
+            </div>
+          </section>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

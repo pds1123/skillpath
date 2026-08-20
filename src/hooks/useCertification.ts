@@ -9,14 +9,18 @@ export function useCertification() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY) as CertificationKey | null;
       if (saved && CERTIFICATIONS.some(c => c.key === saved)) return saved;
-    } catch {}
+    } catch {
+      // Storage can be unavailable in privacy-restricted browser contexts.
+    }
     return 'AZ-900';
   });
 
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, active);
-    } catch {}
+    } catch {
+      // Keep the in-memory selection when storage is unavailable.
+    }
   }, [active]);
 
   const setCertification = useCallback((cert: CertificationKey) => {

@@ -1,1 +1,70 @@
 @import "tailwindcss";
+
+:root {
+  --sp-canvas: oklch(97.5% 0.01 280);
+  --sp-header: oklch(99.2% 0.005 280);
+  --sp-surface: oklch(100% 0 0);
+  --sp-ink: oklch(22% 0.035 275);
+  --sp-ink-strong: oklch(18% 0.04 275);
+  --sp-ink-soft: oklch(36% 0.03 275);
+  --sp-muted: oklch(46% 0.025 275);
+  --sp-muted-light: oklch(50% 0.018 275);
+  --sp-border: oklch(90% 0.012 275);
+  --sp-border-strong: oklch(74% 0.035 275);
+  --sp-primary-900: oklch(31% 0.115 275);
+  --sp-primary-800: oklch(38% 0.145 275);
+  --sp-primary-700: oklch(45% 0.17 275);
+  --sp-primary-600: oklch(53% 0.19 280);
+  --sp-primary-500: oklch(59% 0.2 292);
+  --sp-primary-200: oklch(84% 0.065 285);
+  --sp-primary-100: oklch(93% 0.035 285);
+  --sp-primary-50: oklch(96.5% 0.018 285);
+  --sp-on-primary: oklch(91% 0.035 280);
+  --sp-on-primary-muted: oklch(81% 0.055 280);
+  font-family: "Avenir Next", Avenir, "Segoe UI", system-ui, -apple-system, sans-serif;
+  color: var(--sp-ink);
+  background: var(--sp-canvas);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+::selection {
+  color: #ffffff;
+  background: var(--sp-primary-600);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

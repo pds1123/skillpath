@@ -39,7 +39,7 @@ export function ClickHotspot({
   return (
     <div className="mb-3">
       <p className="text-xs text-gray-400 mb-2 font-semibold uppercase tracking-wide">
-        Click on: <span className="text-blue-600 normal-case">{data.label}</span>
+        Click on: <span className="normal-case text-[var(--sp-primary-700)]">{data.label}</span>
       </p>
       <div className="relative inline-block max-w-full">
         <img
@@ -57,7 +57,7 @@ export function ClickHotspot({
         {click && (
           <div
             className={`absolute pointer-events-none w-4 h-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${
-              checked ? (userInside ? 'border-green-600 bg-green-400' : 'border-red-500 bg-red-400') : 'border-blue-600 bg-blue-400'
+              checked ? (userInside ? 'border-green-600 bg-green-400' : 'border-red-500 bg-red-400') : 'border-[var(--sp-primary-700)] bg-[var(--sp-primary-500)]'
             }`}
             style={{ left: `${click.x * 100}%`, top: `${click.y * 100}%` }}
           />
@@ -67,7 +67,7 @@ export function ClickHotspot({
         <button
           onClick={check}
           disabled={!click}
-          className="w-full mt-2 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-35 hover:bg-blue-700 transition-colors"
+          className="mt-2 w-full rounded-xl bg-[var(--sp-primary-700)] py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--sp-primary-800)] disabled:opacity-35"
         >Submit</button>
       )}
     </div>
@@ -92,40 +92,9 @@ export function InteractiveExam({
   const [dragOverSlot, setDragOverSlot] = useState<number | null>(null);
   const [dragOverPool, setDragOverPool] = useState(false);
 
-  if (data.kind === 'click') {
-    if (!imageUrl) return null;
-    return <ClickHotspot data={data} imageUrl={imageUrl} checked={checked} onSubmit={onSubmit} hideSubmit={hideSubmit} />;
-  }
-
-  if (data.kind === 'self_grade') {
-    if (checked) return null;
-    if (!showAnswer) {
-      return (
-        <div className="mb-3 p-3 rounded-lg bg-blue-50/40 border border-blue-100">
-          <p className="text-xs text-gray-600 leading-relaxed">
-            <span className="font-semibold text-blue-700">Self-grade question.</span> Decide your answer, then click <span className="font-medium">"Show Answer"</span> to compare and mark yourself.
-          </p>
-        </div>
-      );
-    }
-    return (
-      <div className="mb-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
-        <p className="text-xs text-gray-700 mb-2 font-medium">Did you get it right?</p>
-        <div className="flex gap-2">
-          <button
-            onClick={() => onSubmit(true)}
-            className="flex-1 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors"
-          >✓ I got it right</button>
-          <button
-            onClick={() => onSubmit(false)}
-            className="flex-1 py-2 rounded-lg bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors"
-          >✗ I got it wrong</button>
-        </div>
-      </div>
-    );
-  }
-
-  const prompts = (data as { prompts: InteractivePrompt[] }).prompts;
+  const prompts: InteractivePrompt[] = data.kind === 'click' || data.kind === 'self_grade'
+    ? []
+    : data.prompts;
   const allPicked = prompts.every((_, i) => picks[i] !== undefined && picks[i] !== '');
 
   function computeCorrect(): boolean {
@@ -145,12 +114,46 @@ export function InteractiveExam({
 
   // Exam mode: auto-submit whenever picks change (live grade tracking, no button)
   useEffect(() => {
+    if (data.kind === 'click' || data.kind === 'self_grade') return;
     if (!hideSubmit || checked) return;
     if (!allPicked) return;
     onSubmit(computeCorrect());
     // setPicks always creates a new object, so `picks` reference changes on every update
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hideSubmit, checked, allPicked, picks]);
+  }, [data.kind, hideSubmit, checked, allPicked, picks]);
+
+  if (data.kind === 'click') {
+    if (!imageUrl) return null;
+    return <ClickHotspot data={data} imageUrl={imageUrl} checked={checked} onSubmit={onSubmit} hideSubmit={hideSubmit} />;
+  }
+
+  if (data.kind === 'self_grade') {
+    if (checked) return null;
+    if (!showAnswer) {
+      return (
+        <div className="mb-3 rounded-xl border border-[var(--sp-primary-200)] bg-[var(--sp-primary-50)] p-3">
+          <p className="text-xs text-gray-600 leading-relaxed">
+            <span className="font-semibold text-[var(--sp-primary-800)]">Self-grade question.</span> Decide your answer, then select <span className="font-medium">Show Answer</span> to compare and mark yourself.
+          </p>
+        </div>
+      );
+    }
+    return (
+      <div className="mb-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
+        <p className="text-xs text-gray-700 mb-2 font-medium">Did you get it right?</p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => onSubmit(true)}
+            className="flex-1 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors"
+          >I got it right</button>
+          <button
+            onClick={() => onSubmit(false)}
+            className="flex-1 py-2 rounded-lg bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors"
+          >I got it wrong</button>
+        </div>
+      </div>
+    );
+  }
 
   function pickFor(i: number, val: string) {
     if (checked) return;
@@ -187,7 +190,9 @@ export function InteractiveExam({
       try {
         const { item, from } = JSON.parse(e.dataTransfer.getData('text/plain'));
         if (item) moveTo(slotIdx, item, from);
-      } catch {}
+      } catch {
+        // Ignore malformed drag payloads from outside this component.
+      }
     }
     function onDropPool(e: React.DragEvent) {
       e.preventDefault();
@@ -195,7 +200,9 @@ export function InteractiveExam({
       try {
         const { item, from } = JSON.parse(e.dataTransfer.getData('text/plain'));
         if (item) moveToPool(item, from);
-      } catch {}
+      } catch {
+        // Ignore malformed drag payloads from outside this component.
+      }
     }
 
     return (
@@ -203,7 +210,7 @@ export function InteractiveExam({
         <div>
           <p className="text-xs text-gray-400 mb-1.5 font-semibold uppercase tracking-wide">Drag items from here</p>
           <div
-            className={`min-h-12 rounded-lg border-2 border-dashed p-2 flex flex-wrap gap-2 transition-colors ${dragOverPool ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200'}`}
+            className={`flex min-h-12 flex-wrap gap-2 rounded-lg border-2 border-dashed p-2 transition-colors ${dragOverPool ? 'border-[var(--sp-primary-300)] bg-[var(--sp-primary-50)]' : 'border-gray-200'}`}
             onDragOver={e => { if (!checked) { e.preventDefault(); setDragOverPool(true); } }}
             onDragLeave={() => setDragOverPool(false)}
             onDrop={onDropPool}
@@ -213,7 +220,7 @@ export function InteractiveExam({
                 key={item}
                 draggable={!checked}
                 onDragStart={e => onDragStartItem(e, item, 'pool')}
-                className={`px-3 py-1.5 bg-white border border-blue-200 rounded-lg text-xs font-medium text-gray-800 select-none shadow-sm transition-colors ${checked ? '' : 'cursor-grab active:cursor-grabbing hover:border-blue-400 hover:bg-blue-50/40'}`}
+                className={`select-none rounded-lg border border-[var(--sp-primary-200)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--sp-ink)] transition-colors ${checked ? '' : 'cursor-grab active:cursor-grabbing hover:border-[var(--sp-primary-400)] hover:bg-[var(--sp-primary-50)]'}`}
               >
                 {item}
               </div>
@@ -239,8 +246,8 @@ export function InteractiveExam({
                   className={`shrink-0 min-w-32 max-w-44 min-h-9 rounded-lg border-2 p-1.5 flex items-center justify-center transition-colors text-xs font-medium ${
                     isCorrect ? 'border-green-500 bg-green-50 text-green-800'
                     : isWrong ? 'border-red-400 bg-red-50 text-red-700'
-                    : dragOverSlot === i ? 'border-blue-400 bg-blue-50/50'
-                    : placed ? 'border-blue-300 bg-blue-50/40 text-gray-800'
+                    : dragOverSlot === i ? 'border-[var(--sp-primary-400)] bg-[var(--sp-primary-50)]'
+                    : placed ? 'border-[var(--sp-primary-300)] bg-[var(--sp-primary-50)] text-[var(--sp-ink)]'
                     : 'border-dashed border-gray-300 text-gray-300'
                   }`}
                   onDragOver={e => { if (!checked) { e.preventDefault(); setDragOverSlot(i); } }}
@@ -273,7 +280,7 @@ export function InteractiveExam({
             return (
               <div className="space-y-1 mt-2">
                 {missing.map((c, i) => (
-                  <p key={i} className="text-xs text-red-600">✗ Missing: <span className="font-semibold">{c}</span></p>
+                  <p key={i} className="text-xs text-red-600">Missing: <span className="font-semibold">{c}</span></p>
                 ))}
               </div>
             );
@@ -285,7 +292,7 @@ export function InteractiveExam({
                 if (ok) return null;
                 return (
                   <p key={i} className="text-xs text-red-600">
-                    ✗ "{p.text}" — should be <span className="font-semibold">{p.correct}</span>
+                    "{p.text}" should be <span className="font-semibold">{p.correct}</span>
                   </p>
                 );
               })}
@@ -297,7 +304,7 @@ export function InteractiveExam({
           <button
             onClick={check}
             disabled={!allPicked}
-            className="w-full py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-35 hover:bg-blue-700 transition-colors"
+            className="w-full rounded-xl bg-[var(--sp-primary-700)] py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--sp-primary-800)] disabled:opacity-35"
           >Submit</button>
         )}
       </div>
@@ -312,7 +319,7 @@ export function InteractiveExam({
           disabled={checked}
           value={picked ?? ''}
           onChange={e => pickFor(i, e.target.value)}
-          className="px-2 py-1.5 text-xs border border-gray-200 rounded-md bg-white focus:outline-none focus:border-blue-400 disabled:bg-gray-50 max-w-full truncate"
+          className="max-w-full truncate rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs focus:border-[var(--sp-primary-500)] focus:outline-none disabled:bg-gray-50"
         >
           <option value="">— select —</option>
           {(p.options ?? []).map(o => <option key={o} value={o}>{o}</option>)}
@@ -354,7 +361,7 @@ export function InteractiveExam({
             <button
               onClick={check}
               disabled={!allPicked}
-              className="w-full mt-2 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-35 hover:bg-blue-700 transition-colors"
+              className="mt-2 w-full rounded-xl bg-[var(--sp-primary-700)] py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--sp-primary-800)] disabled:opacity-35"
             >Submit</button>
           )}
         </div>
@@ -394,7 +401,7 @@ export function InteractiveExam({
           <button
             onClick={check}
             disabled={!allPicked}
-            className="w-full py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-35 hover:bg-blue-700 transition-colors"
+            className="w-full rounded-xl bg-[var(--sp-primary-700)] py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--sp-primary-800)] disabled:opacity-35"
           >Submit</button>
         )}
       </div>
@@ -442,7 +449,7 @@ export function InteractiveExam({
         <button
           onClick={check}
           disabled={!allPicked}
-          className="w-full mt-2 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-35 hover:bg-blue-700 transition-colors"
+          className="mt-2 w-full rounded-xl bg-[var(--sp-primary-700)] py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--sp-primary-800)] disabled:opacity-35"
         >Submit</button>
       )}
     </div>

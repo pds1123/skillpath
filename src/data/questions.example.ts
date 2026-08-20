@@ -18,16 +18,16 @@ export interface Certification {
   name: string;
   shortName: string;
   provider: 'Azure' | 'AWS';
-  emoji: string;
 }
 
 export const CERTIFICATIONS: Certification[] = [
-  { key: 'AZ-900', name: 'Azure Fundamentals', shortName: 'AZ-900', provider: 'Azure', emoji: '☁️' },
-  { key: 'CLF-C02', name: 'AWS Cloud Practitioner', shortName: 'CLF-C02', provider: 'AWS', emoji: '🟠' },
+  { key: 'AZ-900', name: 'Azure Fundamentals', shortName: 'AZ-900', provider: 'Azure' },
+  { key: 'CLF-C02', name: 'AWS Cloud Practitioner', shortName: 'CLF-C02', provider: 'AWS' },
 ];
 
 export interface Question {
   id: number;
+  legacyId?: number;
   certification: CertificationKey;
   type: QuestionType;
   question: string;
@@ -37,6 +37,7 @@ export interface Question {
   community_vote: string;
   domain: string;
   mode: QuestionMode;
+  multipleSelect?: boolean;
   table?: { headers: string[]; rows: string[][] };
 }
 
@@ -130,9 +131,29 @@ export const QUESTIONS: Question[] = [
 // Data-layer helpers (same shape as the full app)
 // ─────────────────────────────────────────────────────────────────────────────
 import { INTERACTIVE_DATA } from './interactiveData';
-import { QUESTIONS_AWS } from './questions_aws';
 
-export const ALL_QUESTIONS: Question[] = [...QUESTIONS, ...QUESTIONS_AWS];
+export const ALL_QUESTIONS: Question[] = [];
+
+export async function loadQuestionBank(): Promise<void> {
+  const certifications: CertificationKey[] = ['AZ-900', 'CLF-C02'];
+  const responses = await Promise.all(certifications.map(async certification => {
+    const response = await fetch(`/api/questions?certification=${certification}&limit=100`);
+    if (!response.ok) throw new Error(`Unable to load ${certification} questions.`);
+    const page = await response.json() as { items: Array<{
+      id: number; legacyId: number; certification: CertificationKey; type: QuestionType;
+      question: string; options: Record<string, string>; domain: string; mode: QuestionMode;
+      multipleSelect: boolean; table?: Question['table'] | null;
+    }> };
+    return page.items.map(item => ({
+      ...item,
+      correct_answer: [],
+      answer_text: '',
+      community_vote: '',
+      table: item.table ?? undefined,
+    }));
+  }));
+  ALL_QUESTIONS.splice(0, ALL_QUESTIONS.length, ...responses.flat());
+}
 
 export function questionsForCert(cert: CertificationKey): Question[] {
   return ALL_QUESTIONS.filter(q => q.certification === cert);
@@ -143,7 +164,7 @@ export function domainsForCert(cert: CertificationKey): string[] {
 }
 
 export function quizQuestionsForCert(cert: CertificationKey): Question[] {
-  return questionsForCert(cert).filter(q => q.mode === 'quiz' || INTERACTIVE_DATA[q.id]);
+  return questionsForCert(cert).filter(q => q.mode === 'quiz' || INTERACTIVE_DATA[q.legacyId ?? q.id]);
 }
 
 export function answerableQuestionsForCert(cert: CertificationKey): Question[] {

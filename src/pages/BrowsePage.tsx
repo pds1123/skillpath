@@ -3,15 +3,19 @@ import type React from 'react';
 import { questionsForCert, domainsForCert } from '../data/questions';
 import type { Question, CertificationKey } from '../data/questions';
 import type { ProgressState } from '../hooks/useProgress';
-import { DOMAIN_EMOJI } from '../data/studyContent';
 import { QUESTION_IMAGES } from '../data/questionImages';
 import { INTERACTIVE_DATA } from '../data/interactiveData';
 import type { InteractiveData } from '../data/interactiveData';
 import { InteractiveExam } from '../components/InteractiveExam';
+import { AppHeader } from '../components/AppHeader';
+import {
+  revealQuestionAnswer,
+  submitQuestionAnswer,
+  type RevealedAnswer,
+} from '../services/api';
 
 interface Props {
   progress: ProgressState;
-  onAnswer: (questionId: number, correct: boolean, selected: string[]) => void;
   onNavigate: (page: string) => void;
   apiKey: string;
   activeCert: CertificationKey;
@@ -64,7 +68,7 @@ function renderInline(text: string): React.ReactNode[] {
   while ((m = re.exec(text)) !== null) {
     if (m.index > last) parts.push(text.slice(last, m.index));
     if (m[1]) parts.push(<strong key={key++} className="font-semibold text-gray-900">{m[1]}</strong>);
-    else if (m[2]) parts.push(<code key={key++} className="px-1 py-0.5 rounded bg-purple-100 text-purple-800 text-[11px] font-mono">{m[2]}</code>);
+    else if (m[2]) parts.push(<code key={key++} className="rounded bg-[var(--sp-primary-100)] px-1 py-0.5 font-mono text-[11px] text-[var(--sp-primary-800)]">{m[2]}</code>);
     last = m.index + m[0].length;
   }
   if (last < text.length) parts.push(text.slice(last));
@@ -96,10 +100,10 @@ function MarkdownLite({ text }: { text: string }) {
       flushList();
       const level = h[1].length;
       const cls = level === 1
-        ? 'text-sm font-bold text-purple-800 mt-2 mb-1'
+        ? 'text-sm font-bold text-[var(--sp-primary-900)] mt-2 mb-1'
         : level === 2
-          ? 'text-xs font-bold text-purple-700 mt-2 mb-0.5'
-          : 'text-xs font-semibold text-purple-600 mt-1.5 mb-0.5';
+          ? 'text-xs font-bold text-[var(--sp-primary-800)] mt-2 mb-0.5'
+          : 'text-xs font-semibold text-[var(--sp-primary-700)] mt-1.5 mb-0.5';
       blocks.push(<p key={i++} className={cls}>{renderInline(h[2])}</p>);
     } else if (li) {
       listBuf.push(li[1]);
@@ -123,6 +127,9 @@ function QuestionCard({
   const [showAnswer, setShowAnswer] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [mcResult, setMcResult] = useState<boolean | null>(null);
+  const [answer, setAnswer] = useState<RevealedAnswer | null>(null);
+  const [answerLoading, setAnswerLoading] = useState(false);
+  const [answerError, setAnswerError] = useState<string | null>(null);
   const [hotspotPicks, setHotspotPicks] = useState<Record<number, 'Yes' | 'No'>>({});
   const [hotspotChecked, setHotspotChecked] = useState(false);
   const [hotspotResults, setHotspotResults] = useState<Record<number, boolean>>({});
@@ -137,30 +144,33 @@ function QuestionCard({
 
   const pastAttempts = progress.results[question.id] ?? [];
   const lastAttempt = pastAttempts[pastAttempts.length - 1];
-  const isMulti = question.correct_answer.length > 1;
+  const isMulti = question.multipleSelect ?? false;
   const optionKeys = Object.keys(question.options);
   const hasOptions = optionKeys.length > 0;
 
-  const interactive: InteractiveData | undefined = INTERACTIVE_DATA[question.id];
+  const sourceId = question.legacyId ?? question.id;
+  const interactive: InteractiveData | undefined = INTERACTIVE_DATA[sourceId];
   const [interactiveResult, setInteractiveResult] = useState<boolean | null>(null);
 
   const isDragDrop = !interactive && question.type === 'drag_drop' && hasOptions;
   const isMC = !interactive && !isDragDrop && hasOptions;
 
   const hotspotBoxes = (!interactive && question.type === 'hotspot')
-    ? parseBoxes(question.answer_text || '')
+    ? parseBoxes(answer?.explanation ?? question.answer_text ?? '')
     : [];
   const isInteractiveHotspot = hotspotBoxes.length > 0 && hotspotBoxes.every(b => b.answer === 'Yes' || b.answer === 'No');
 
-  const qImages = QUESTION_IMAGES[question.id];
-  const rawCleaned = question.answer_text
-    ? /^:\s*References?:/i.test(question.answer_text)
+  const qImages = QUESTION_IMAGES[sourceId];
+  const answerText = answer?.explanation ?? question.answer_text;
+  const correctAnswers = answer?.correctAnswer ?? [];
+  const rawCleaned = answerText
+    ? /^:\s*References?:/i.test(answerText)
       ? ''
-      : question.answer_text.replace(/\s*References?:.*$/s, '').replace(/^:\s*/, '').trim()
+      : answerText.replace(/\s*References?:.*$/s, '').replace(/^:\s*/, '').trim()
     : '';
   // Suppress redundant letter-only answer_text like "AC" or "B" when it just repeats correct_answer
   const cleanAnswerText = /^[A-E]{1,5}$/i.test(rawCleaned) ? '' : rawCleaned;
-  const hasRealAnswer = question.correct_answer.length > 0 || cleanAnswerText.length > 0;
+  const hasRealAnswer = correctAnswers.length > 0 || cleanAnswerText.length > 0;
 
   // ── MC helpers ───────────────────────────────────────────────────────────────
   function toggleOption(letter: string) {
@@ -172,26 +182,56 @@ function QuestionCard({
     );
   }
 
-  function handleMcSubmit() {
-    if (!selected.length || showAnswer) return;
-    const correct = selected.length === question.correct_answer.length &&
-      selected.every(s => question.correct_answer.includes(s));
-    setMcResult(correct);
-    setShowAnswer(true);
+  async function handleMcSubmit() {
+    if (!selected.length || showAnswer || answerLoading) return;
+    setAnswerLoading(true);
+    setAnswerError(null);
+    try {
+      const result = await submitQuestionAnswer(question.id, selected);
+      setAnswer(result);
+      setMcResult(result.correct);
+      setShowAnswer(true);
+    } catch (error) {
+      setAnswerError(error instanceof Error ? error.message : 'Unable to check this answer.');
+    } finally {
+      setAnswerLoading(false);
+    }
+  }
+
+  async function toggleAnswer() {
+    if (showAnswer) {
+      setShowAnswer(false);
+      return;
+    }
+    if (answer) {
+      setShowAnswer(true);
+      return;
+    }
+
+    setAnswerLoading(true);
+    setAnswerError(null);
+    try {
+      setAnswer(await revealQuestionAnswer(question.id));
+      setShowAnswer(true);
+    } catch (error) {
+      setAnswerError(error instanceof Error ? error.message : 'Unable to load the answer.');
+    } finally {
+      setAnswerLoading(false);
+    }
   }
 
   function optClass(letter: string) {
-    const base = 'w-full text-left px-3 py-2.5 rounded-lg border-2 transition-all text-sm';
+    const base = 'w-full rounded-xl px-3 py-3 text-left text-sm ring-1 ring-inset transition';
     if (!showAnswer) {
       return `${base} cursor-pointer ${selected.includes(letter)
-        ? 'border-blue-500 bg-blue-50 text-blue-900'
-        : 'border-gray-200 bg-white hover:border-blue-200 hover:bg-blue-50/40 text-gray-800'}`;
+        ? 'bg-[var(--sp-primary-50)] text-[var(--sp-primary-900)] ring-2 ring-[var(--sp-primary-600)]'
+        : 'bg-white text-[var(--sp-ink)] ring-[var(--sp-border)] hover:bg-[var(--sp-primary-50)] hover:ring-[var(--sp-primary-300)]'}`;
     }
-    const isCorrect = question.correct_answer.includes(letter);
+    const isCorrect = correctAnswers.includes(letter);
     const wasSelected = selected.includes(letter);
     if (isCorrect) return `${base} border-green-500 bg-green-50 text-green-900 font-medium`;
     if (wasSelected && !isCorrect) return `${base} border-red-400 bg-red-50 text-red-800`;
-    return `${base} border-gray-100 bg-gray-50 text-gray-400`;
+    return `${base} bg-[var(--sp-canvas)] text-[var(--sp-muted)] ring-[var(--sp-border)]`;
   }
 
   // ── Hotspot helpers ───────────────────────────────────────────────────────────
@@ -234,21 +274,30 @@ function QuestionCard({
     }
   }
 
-  function handleDragSubmit() {
-    const correct = answerArea.length === question.correct_answer.length &&
-      answerArea.every(k => question.correct_answer.includes(k));
-    setDragResult(correct);
-    setShowAnswer(true);
+  async function handleDragSubmit() {
+    if (!answerArea.length || answerLoading) return;
+    setAnswerLoading(true);
+    setAnswerError(null);
+    try {
+      const result = await submitQuestionAnswer(question.id, answerArea);
+      setAnswer(result);
+      setDragResult(result.correct);
+      setShowAnswer(true);
+    } catch (error) {
+      setAnswerError(error instanceof Error ? error.message : 'Unable to check this answer.');
+    } finally {
+      setAnswerLoading(false);
+    }
   }
 
   // ── AI ────────────────────────────────────────────────────────────────────────
   async function fetchAI() {
-    if (!apiKey) { setAiText('Add your Claude API key in Settings (top-right ⚙️).'); setShowAi(true); return; }
+    if (!apiKey) { setAiText('Add your Claude API key in Settings.'); setShowAi(true); return; }
     setAiLoading(true); setShowAi(true);
     try {
-      const answerInfo = question.correct_answer.length > 0
-        ? `Correct answer: ${question.correct_answer.map(l => `${l}. ${question.options[l] ?? ''}`).join('; ')}`
-        : question.answer_text ? `Answer: ${question.answer_text}` : 'Answer not available';
+      const answerInfo = correctAnswers.length > 0
+        ? `Correct answer: ${correctAnswers.map(l => `${l}. ${question.options[l] ?? ''}`).join('; ')}`
+        : answerText ? `Answer: ${answerText}` : 'Answer not available';
       const optText = Object.entries(question.options).map(([l, t]) => `${l}. ${t}`).join('\n');
 
       // For hotspot/match/yesno/dropdown: include structured prompts from interactive data
@@ -300,17 +349,17 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
         const errMsg = data.error?.message ?? 'Unknown error';
         const errType = data.error?.type ?? '';
         if (errType === 'overloaded_error' || /overloaded/i.test(errMsg)) {
-          text = '⚠️ Claude API is currently overloaded (too many requests). Please wait a moment and click "AI Analysis" again to retry.';
+          text = 'Claude API is currently overloaded. Please wait a moment and select "AI Analysis" again.';
         } else if (errType === 'rate_limit_error' || /rate.?limit/i.test(errMsg)) {
-          text = '⚠️ Rate limit reached. Please wait a minute and retry.';
+          text = 'Rate limit reached. Please wait a minute and retry.';
         } else if (errType === 'authentication_error' || /api.?key/i.test(errMsg)) {
-          text = '⚠️ API key issue: ' + errMsg + '\n\nCheck your API key in Settings.';
+          text = 'API key issue: ' + errMsg + '\n\nCheck your API key in Settings.';
         } else {
-          text = '⚠️ Error: ' + errMsg;
+          text = 'Error: ' + errMsg;
         }
       }
       setAiText(text);
-    } catch { setAiText('⚠️ Network error. Check your internet connection and API key.'); }
+    } catch { setAiText('Network error. Check your internet connection and API key.'); }
     setAiLoading(false);
   }
 
@@ -320,16 +369,18 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
 
   if (isEmptyQuestion) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100">
-          <span className="text-xs font-mono text-gray-400">#{question.id}</span>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">
-            {DOMAIN_EMOJI[question.domain] ?? ''} {question.domain}
+      <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-[var(--sp-border)]">
+        <div className="flex items-center gap-2 border-b border-[var(--sp-border)] bg-[var(--sp-primary-50)] px-5 py-3">
+          <span className="font-mono text-xs text-[var(--sp-muted)]">#{question.id}</span>
+          <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-[var(--sp-primary-800)] ring-1 ring-[var(--sp-border)]">
+            {question.domain}
           </span>
         </div>
-        <div className="p-8 text-center text-gray-400">
-          <p className="text-3xl mb-3">🖼️</p>
-          <p className="font-medium text-gray-500 text-sm">Content not available</p>
+        <div className="p-8 text-center text-[var(--sp-muted)]">
+          <svg className="mx-auto mb-3 h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} d="M4 16.5V7.75A1.75 1.75 0 0 1 5.75 6h12.5A1.75 1.75 0 0 1 20 7.75v8.5A1.75 1.75 0 0 1 18.25 18H5.5m-1.5-1.5 4.2-4.2a1.5 1.5 0 0 1 2.1 0l1.2 1.2 2.2-2.2a1.5 1.5 0 0 1 2.1 0L20 15.5M15.5 9h.01" />
+          </svg>
+          <p className="text-sm font-medium text-[var(--sp-ink)]">Content not available</p>
           <p className="text-xs mt-1">This question requires an exhibit or image that was not captured.</p>
         </div>
       </div>
@@ -337,12 +388,12 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <article className="overflow-hidden rounded-2xl bg-white ring-1 ring-[var(--sp-border)]">
       {/* Card header */}
-      <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100">
-        <span className="text-xs font-mono text-gray-400">#{question.id}</span>
-        <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">
-          {DOMAIN_EMOJI[question.domain] ?? ''} {question.domain}
+      <div className="flex items-center gap-2 border-b border-[var(--sp-border)] bg-[var(--sp-primary-50)] px-5 py-3">
+        <span className="font-mono text-xs text-[var(--sp-muted)]">#{question.id}</span>
+        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-[var(--sp-primary-800)] ring-1 ring-[var(--sp-border)]">
+          {question.domain}
         </span>
         {question.type !== 'multiple_choice' && question.type !== 'yes_no' && (
           <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 font-medium capitalize">
@@ -352,14 +403,14 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
         <div className="ml-auto">
           {lastAttempt && (
             <span className={`text-xs font-medium ${lastAttempt.correct ? 'text-green-600' : 'text-red-500'}`}>
-              {lastAttempt.correct ? '✓' : '✗'}
+              {lastAttempt.correct ? 'Correct' : 'Review'}
             </span>
           )}
         </div>
       </div>
 
       {/* Question body */}
-      <div className="p-4">
+      <div className="p-5 sm:p-6">
         {(() => {
           const hasContextImg =
             qImages?.question_img && (!interactive || interactive.kind !== 'self_grade') &&
@@ -455,7 +506,7 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
               <div>
                 <p className="text-xs text-gray-400 mb-1.5 font-semibold uppercase tracking-wide">Options</p>
                 <div
-                  className={`min-h-16 rounded-lg border-2 border-dashed p-1.5 space-y-1.5 transition-colors ${dragOver === 'pool' ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200'}`}
+                  className={`min-h-16 space-y-1.5 rounded-lg border-2 border-dashed p-1.5 transition-colors ${dragOver === 'pool' ? 'border-[var(--sp-primary-300)] bg-[var(--sp-primary-50)]' : 'border-gray-200'}`}
                   onDragOver={e => { e.preventDefault(); setDragOver('pool'); }}
                   onDragLeave={() => setDragOver(null)}
                   onDrop={onDropToPool}
@@ -465,7 +516,7 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
                       key={key}
                       draggable
                       onDragStart={e => onDragStart(e, key, 'pool')}
-                      className="px-3 py-2 bg-white border border-blue-200 rounded-lg text-xs font-medium cursor-grab active:cursor-grabbing text-gray-800 select-none shadow-sm hover:border-blue-400 hover:bg-blue-50/40 transition-colors"
+                      className="cursor-grab select-none rounded-lg border border-[var(--sp-primary-200)] bg-white px-3 py-2 text-xs font-medium text-[var(--sp-ink)] transition-colors hover:border-[var(--sp-primary-400)] hover:bg-[var(--sp-primary-50)] active:cursor-grabbing"
                     >
                       {question.options[key]}
                     </div>
@@ -489,7 +540,7 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
                       key={key}
                       draggable
                       onDragStart={e => onDragStart(e, key, 'answer')}
-                      className="px-3 py-2 bg-green-50 border border-green-300 rounded-lg text-xs font-medium cursor-grab active:cursor-grabbing text-gray-800 select-none shadow-sm hover:border-green-500 transition-colors"
+                      className="cursor-grab select-none rounded-lg border border-green-300 bg-green-50 px-3 py-2 text-xs font-medium text-[var(--sp-ink)] transition-colors hover:border-green-500 active:cursor-grabbing"
                     >
                       {question.options[key]}
                     </div>
@@ -559,7 +610,7 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
         {isMC && (
           <>
             {isMulti && !showAnswer && (
-              <p className="text-xs text-blue-500 mb-2 font-medium">Select all that apply</p>
+              <p className="mb-2 text-xs font-medium text-[var(--sp-primary-700)]">Select all that apply</p>
             )}
             <div className="flex flex-col gap-1.5 mb-3">
               {Object.entries(question.options).map(([letter, text]) => (
@@ -567,13 +618,13 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
                   <span className="flex gap-2 items-start">
                     <span className={`shrink-0 w-5 h-5 rounded border-2 text-xs font-bold flex items-center justify-center mt-0.5 transition-colors ${
                       showAnswer
-                        ? question.correct_answer.includes(letter)
+                        ? correctAnswers.includes(letter)
                           ? 'border-green-500 bg-green-500 text-white'
                           : selected.includes(letter)
                           ? 'border-red-400 bg-red-400 text-white'
                           : 'border-gray-200 text-gray-300'
                         : selected.includes(letter)
-                        ? 'border-blue-500 bg-blue-500 text-white'
+                        ? 'border-[var(--sp-primary-600)] bg-[var(--sp-primary-600)] text-white'
                         : 'border-gray-300 text-gray-400'
                     }`}>{letter}</span>
                     <span>{text}</span>
@@ -590,53 +641,60 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
           {isMC && !showAnswer && (
             <button
               onClick={handleMcSubmit}
-              disabled={selected.length === 0}
-              className="flex-1 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-35 hover:bg-blue-700 transition-colors"
-            >Submit</button>
+              disabled={selected.length === 0 || answerLoading}
+              className="flex-1 rounded-xl bg-[var(--sp-primary-700)] py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--sp-primary-800)] disabled:opacity-35"
+            >{answerLoading ? 'Checking…' : 'Submit'}</button>
           )}
           {isDragDrop && !showAnswer && (
             <button
               onClick={handleDragSubmit}
-              disabled={answerArea.length === 0}
-              className="flex-1 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-35 hover:bg-blue-700 transition-colors"
+              disabled={answerArea.length === 0 || answerLoading}
+              className="flex-1 rounded-xl bg-[var(--sp-primary-700)] py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--sp-primary-800)] disabled:opacity-35"
             >Submit</button>
           )}
           {isInteractiveHotspot && !showAnswer && (
             <button
               onClick={handleHotspotSubmit}
               disabled={!hotspotBoxes.every(b => hotspotPicks[b.n] !== undefined)}
-              className="flex-1 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-35 hover:bg-blue-700 transition-colors"
+              className="flex-1 rounded-xl bg-[var(--sp-primary-700)] py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--sp-primary-800)] disabled:opacity-35"
             >Submit</button>
           )}
           {/* Show/Hide Answer toggle */}
           <button
-            onClick={() => setShowAnswer(v => !v)}
+            onClick={toggleAnswer}
+            disabled={answerLoading}
             className={`${hasSubmitAction ? 'flex-1' : 'w-full'} py-2.5 rounded-lg border-2 text-sm font-medium transition-all ${
               showAnswer
                 ? 'border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100'
-                : 'border-dashed border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/30'
+                : 'border-[var(--sp-border-strong)] text-[var(--sp-muted)] hover:border-[var(--sp-primary-400)] hover:bg-[var(--sp-primary-50)] hover:text-[var(--sp-primary-800)]'
             }`}
-          >{showAnswer ? 'Hide Answer' : 'Show Answer'}</button>
+          >{answerLoading ? 'Loading answer…' : showAnswer ? 'Hide Answer' : 'Show Answer'}</button>
         </div>
+
+        {answerError && (
+          <p className="mb-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+            {answerError}
+          </p>
+        )}
 
         {/* ── Submit result feedback ───────────────────────── */}
         {interactiveResult !== null && (
           <div className={`mb-2 p-2.5 rounded-lg text-sm font-medium ${interactiveResult ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
             {(() => {
               const n = interactive && 'prompts' in interactive ? interactive.prompts.length : 1;
-              if (interactiveResult) return n > 1 ? '✓ All correct!' : '✓ Correct!';
-              return n > 1 ? '✗ Some answers are incorrect' : '✗ Incorrect';
+              if (interactiveResult) return n > 1 ? 'All correct' : 'Correct';
+              return n > 1 ? 'Some answers are incorrect' : 'Incorrect';
             })()}
           </div>
         )}
         {mcResult !== null && (
           <div className={`mb-2 p-2.5 rounded-lg text-sm font-medium ${mcResult ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-            {mcResult ? '✓ Correct!' : `✗ Incorrect — correct: ${question.correct_answer.join(', ')}`}
+            {mcResult ? 'Correct' : `Incorrect, correct answer: ${correctAnswers.join(', ')}`}
           </div>
         )}
         {dragResult !== null && (
           <div className={`mb-2 p-2.5 rounded-lg text-sm font-medium ${dragResult ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-            {dragResult ? '✓ Correct!' : `✗ Incorrect`}
+            {dragResult ? 'Correct' : 'Incorrect'}
           </div>
         )}
 
@@ -652,7 +710,7 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
                   return (
                     <div key={b.n} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${correct ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
                       <span className="font-bold">Box {b.n}</span>
-                      <span>{correct ? '✓' : '✗'}</span>
+                      <span>{correct ? 'Correct' : 'Incorrect'}</span>
                       <span>You: {picked ?? '—'}</span>
                       {!correct && <span className="ml-auto">Correct: {b.answer}</span>}
                     </div>
@@ -662,13 +720,13 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
             )}
 
             {/* Answer box */}
-            <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
-              <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2">Answer</p>
+            <div className="rounded-xl border border-[var(--sp-primary-200)] bg-[var(--sp-primary-50)] p-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--sp-primary-800)]">Answer</p>
 
               {/* MC letter answers — hide for interactive types since the box rendering covers it */}
-              {question.correct_answer.length > 0 && Object.keys(question.options).length > 0 && !interactive && (
+              {correctAnswers.length > 0 && Object.keys(question.options).length > 0 && !interactive && (
                 <div className="mb-2 space-y-0.5">
-                  {question.correct_answer.map(l => (
+                  {correctAnswers.map(l => (
                     <p key={l} className="text-sm font-semibold text-gray-800">
                       <span className="text-green-700">{l}.</span> {question.options[l]}
                     </p>
@@ -677,13 +735,13 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
               )}
 
               {/* Letter only (no options) — hide for interactive types */}
-              {question.correct_answer.length > 0 && Object.keys(question.options).length === 0 && !interactive && (
-                <p className="text-sm font-bold text-green-700 mb-2">{question.correct_answer.join(', ')}</p>
+              {correctAnswers.length > 0 && Object.keys(question.options).length === 0 && !interactive && (
+                <p className="text-sm font-bold text-green-700 mb-2">{correctAnswers.join(', ')}</p>
               )}
 
               {/* Box N: structured answers */}
               {(() => {
-                let boxes = parseBoxes(cleanAnswerText || question.answer_text || '');
+                let boxes = parseBoxes(cleanAnswerText || answerText || '');
                 // Fallback: for yesno/dropdown interactive data, fill in missing or empty-detail boxes
                 // using the prompt statement text
                 if (interactive && (interactive.kind === 'yesno' || interactive.kind === 'dropdown')) {
@@ -735,7 +793,7 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
                       {boxes.map((b, idx) => (
                         <div key={b.n} className="contents">
                           <div className="flex gap-2 items-start">
-                            <span className="shrink-0 w-14 text-xs font-bold text-amber-700 pt-0.5">Box {b.n}</span>
+                            <span className="w-14 shrink-0 pt-0.5 text-xs font-bold text-[var(--sp-primary-800)]">Box {b.n}</span>
                             {b.answer ? (
                               <span className={`shrink-0 text-xs font-bold px-1.5 py-0.5 rounded ${b.answer.toLowerCase() === 'yes' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
                                 {b.answer}
@@ -766,13 +824,13 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
 
               {/* Reference link(s) — show all URLs after "References:" */}
               {(() => {
-                const refs = extractRefs(question.answer_text || '');
+                const refs = extractRefs(answerText || '');
                 if (refs.length === 0) return null;
                 return (
                   <div className="mt-1 space-y-0.5">
                     {refs.map((r, i) => (
-                      <a key={i} href={r} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline break-all block text-xs">
-                        🔗 Reference{refs.length > 1 ? ` ${i + 1}` : ''}
+                      <a key={i} href={r} target="_blank" rel="noreferrer" className="block break-all text-xs text-[var(--sp-primary-700)] hover:underline">
+                        Reference{refs.length > 1 ? ` ${i + 1}` : ''}
                       </a>
                     ))}
                   </div>
@@ -790,13 +848,13 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
 
               {/* No answer fallback */}
               {!hasRealAnswer && !qImages?.answer_img && (() => {
-                const ref = extractRef(question.answer_text || '');
+                const ref = extractRef(answerText || '');
                 return (
                   <div className="text-xs text-gray-400 space-y-1">
                     <p>No text answer available.</p>
                     {ref && (
-                      <a href={ref} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline break-all block">
-                        🔗 View on Microsoft Docs
+                      <a href={ref} target="_blank" rel="noreferrer" className="block break-all text-[var(--sp-primary-700)] hover:underline">
+                        View on Microsoft Docs
                       </a>
                     )}
                   </div>
@@ -810,21 +868,21 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
         {!showAi ? (
           <button
             onClick={fetchAI}
-            className="mt-3 w-full py-2.5 rounded-lg border border-purple-200 bg-purple-50 text-purple-700 text-sm font-medium hover:bg-purple-100 transition-colors flex items-center justify-center gap-2"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--sp-primary-200)] bg-[var(--sp-primary-50)] py-2.5 text-sm font-medium text-[var(--sp-primary-800)] transition-colors hover:bg-[var(--sp-primary-100)]"
           >
-            🤖 AI Analysis
+            AI Analysis
           </button>
         ) : (
-          <div className="mt-3 bg-purple-50 border border-purple-200 rounded-lg p-3">
-            <p className="text-xs font-semibold text-purple-700 mb-1.5">🤖 AI Analysis</p>
+          <div className="mt-3 rounded-xl border border-[var(--sp-primary-200)] bg-[var(--sp-primary-50)] p-4">
+            <p className="mb-1.5 text-xs font-semibold text-[var(--sp-primary-800)]">AI analysis</p>
             {aiLoading
-              ? <p className="text-xs text-purple-400 animate-pulse">Analyzing...</p>
+              ? <p className="animate-pulse text-xs text-[var(--sp-primary-500)]">Analyzing...</p>
               : <MarkdownLite text={aiText} />
             }
           </div>
         )}
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -836,20 +894,20 @@ function QuestionNav({ currentId, visitedIds, onJump, questions }: {
   questions: Question[];
 }) {
   return (
-    <div className="flex flex-wrap gap-1 py-2 max-h-48 overflow-y-auto">
+    <div className="flex max-h-56 flex-wrap gap-1.5 overflow-y-auto py-2 pr-1">
       {questions.map(q => {
         const isCurrent = q.id === currentId;
         const isVisited = visitedIds.has(q.id);
         const color = isCurrent
-          ? 'bg-blue-600 text-white'
+          ? 'bg-[var(--sp-primary-700)] text-white'
           : isVisited
-            ? 'bg-gray-300 text-gray-500 hover:bg-gray-400'
-            : 'bg-gray-100 text-gray-400 hover:bg-gray-200';
+            ? 'bg-[var(--sp-primary-100)] text-[var(--sp-primary-800)] hover:bg-[var(--sp-primary-200)]'
+            : 'bg-[var(--sp-canvas)] text-[var(--sp-muted)] hover:bg-[var(--sp-primary-50)]';
         return (
           <button
             key={q.id}
             onClick={() => onJump(q.id)}
-            className={`w-8 h-8 rounded-full text-xs font-semibold transition-colors shrink-0 ${color}`}
+            className={`h-8 min-w-8 rounded-lg px-1.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sp-primary-600)] ${color}`}
           >
             {q.id}
           </button>
@@ -860,7 +918,7 @@ function QuestionNav({ currentId, visitedIds, onJump, questions }: {
 }
 
 // ─── Browse Page ──────────────────────────────────────────────────────────────
-export function BrowsePage({ progress, onAnswer: _onAnswer, onNavigate, apiKey, activeCert }: Props) {
+export function BrowsePage({ progress, onNavigate, apiKey, activeCert }: Props) {
   const certQuestions = useMemo(() => questionsForCert(activeCert), [activeCert]);
   const certDomains = useMemo(() => domainsForCert(activeCert), [activeCert]);
   const lastIdStorageKey = `browse_last_id_${activeCert}`;
@@ -873,7 +931,7 @@ export function BrowsePage({ progress, onAnswer: _onAnswer, onNavigate, apiKey, 
     const found = lastId ? certQuestions.findIndex(q => q.id === lastId) : -1;
     return found >= 0 ? found : 0;
   });
-  const [, setShowNav] = useState(false);
+  const [showNav, setShowNav] = useState(false);
   const [visitedIds, setVisitedIds] = useState<Set<number>>(() => {
     try {
       const saved = localStorage.getItem(`browse_visited_${activeCert}`);
@@ -902,6 +960,8 @@ export function BrowsePage({ progress, onAnswer: _onAnswer, onNavigate, apiKey, 
     if (!filterDomain && filterStatus === 'all' && !search) {
       localStorage.setItem(lastIdStorageKey, String(q.id));
     }
+    // This state mirrors the browser-backed visited-question ledger.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setVisitedIds(prev => {
       if (prev.has(q.id)) return prev;
       const s = new Set(prev);
@@ -929,76 +989,83 @@ export function BrowsePage({ progress, onAnswer: _onAnswer, onNavigate, apiKey, 
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 py-5">
-
-        {/* Top nav */}
-        <div className="flex items-center gap-2 mb-4">
-          <button onClick={() => onNavigate('home')} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 transition-colors">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-            Home
-          </button>
-          <span className="font-semibold text-gray-900 text-sm ml-1">Browse Questions</span>
-        </div>
-
-        {/* Question navigator — always visible */}
-        <div className="bg-white rounded-xl border border-gray-200 p-3 mb-4">
-          <div className="flex items-center gap-3 mb-2 text-xs text-gray-400">
-            <span>Question {question?.id ?? '—'} / {certQuestions.length}</span>
-            <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-full bg-blue-600" /> current</span>
-            <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-full bg-gray-300" /> visited</span>
+    <div className="min-h-screen bg-[var(--sp-canvas)] text-[var(--sp-ink)]">
+      <AppHeader active="learning" onNavigate={onNavigate} />
+      <main className="mx-auto max-w-4xl px-5 py-8 sm:px-8 sm:py-12">
+        <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <button type="button" onClick={() => onNavigate('tutorial')} className="mb-3 inline-flex items-center gap-1.5 rounded-lg text-sm font-medium text-[var(--sp-muted)] transition hover:text-[var(--sp-primary-800)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--sp-primary-600)]">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 19l-7-7 7-7" /></svg>
+              My Learning
+            </button>
+            <h1 className="text-3xl font-semibold tracking-[-0.035em] text-[var(--sp-ink-strong)] sm:text-4xl">Question library</h1>
+            <p className="mt-2 text-sm leading-6 text-[var(--sp-muted)]">Browse questions by topic, revisit difficult concepts and check each explanation.</p>
           </div>
-          <QuestionNav currentId={question?.id ?? 0} visitedIds={visitedIds} onJump={jumpToId} questions={certQuestions} />
+          <button type="button" onClick={() => setShowNav(value => !value)} aria-expanded={showNav} className="self-start rounded-xl bg-[var(--sp-surface)] px-4 py-2.5 text-sm font-semibold text-[var(--sp-primary-800)] ring-1 ring-[var(--sp-border)] transition hover:bg-[var(--sp-primary-50)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sp-primary-600)]">
+            {showNav ? 'Close navigator' : `Open navigator · ${idx + 1} of ${total}`}
+          </button>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-xl border border-gray-200 p-3 mb-4 space-y-2">
+        {showNav && (
+          <section className="mb-5 rounded-2xl bg-[var(--sp-surface)] p-4 ring-1 ring-[var(--sp-border)]" aria-label="Question navigator">
+            <div className="mb-2 flex flex-wrap items-center gap-4 text-xs text-[var(--sp-muted)]">
+              <span>{certQuestions.length} questions</span>
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-[var(--sp-primary-700)]" /> Current</span>
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-[var(--sp-primary-100)]" /> Visited</span>
+            </div>
+            <QuestionNav currentId={question?.id ?? 0} visitedIds={visitedIds} onJump={jumpToId} questions={certQuestions} />
+          </section>
+        )}
+
+        <section className="mb-5 space-y-3 rounded-2xl bg-[var(--sp-surface)] p-4 ring-1 ring-[var(--sp-border)]" aria-label="Question filters">
           <input
             value={search}
             onChange={e => setSearchFilter(e.target.value)}
-            placeholder="Search questions..."
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 bg-gray-50"
+            placeholder="Search questions"
+            className="w-full rounded-xl bg-[var(--sp-canvas)] px-4 py-2.5 text-sm text-[var(--sp-ink)] ring-1 ring-inset ring-[var(--sp-border)] placeholder:text-[var(--sp-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--sp-primary-600)]"
           />
           <div className="flex gap-2">
             <select
               value={filterDomain}
               onChange={e => setDomainFilter(e.target.value)}
-              className="flex-1 min-w-0 px-2 py-1.5 text-xs border border-gray-200 rounded-lg bg-white focus:outline-none"
+              className="min-w-0 flex-1 rounded-lg bg-white px-3 py-2 text-xs text-[var(--sp-ink)] ring-1 ring-inset ring-[var(--sp-border)] focus:outline-none focus:ring-2 focus:ring-[var(--sp-primary-600)]"
             >
-              <option value="">All Domains</option>
-              {certDomains.map(d => <option key={d} value={d}>{DOMAIN_EMOJI[d] ?? ''} {d}</option>)}
+              <option value="">All domains</option>
+              {certDomains.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
             <div className="flex gap-1">
               {(['all', 'wrong', 'unseen'] as const).map(f => (
                 <button key={f} onClick={() => setStatusFilter(f)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${filterStatus === f ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                  {f === 'all' ? 'All' : f === 'wrong' ? '✗ Wrong' : '○ New'}
+                  className={`whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${filterStatus === f ? 'bg-[var(--sp-primary-700)] text-white' : 'bg-[var(--sp-primary-50)] text-[var(--sp-primary-800)] hover:bg-[var(--sp-primary-100)]'}`}>
+                  {f === 'all' ? 'All' : f === 'wrong' ? 'Needs review' : 'Unseen'}
                 </button>
               ))}
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Progress bar + counter */}
         {total > 0 && (
-          <div className="mb-4">
-            <div className="flex items-center justify-between text-xs text-gray-400 mb-1.5">
-              <span>{idx + 1} / {total}</span>
+          <div className="mb-5">
+            <div className="mb-2 flex items-center justify-between text-xs font-medium text-[var(--sp-muted)]">
+              <span>Question {idx + 1} of {total}</span>
               <div className="flex gap-1">
                 <button
                   onClick={() => setIdx(i => Math.max(0, i - 1))}
                   disabled={idx === 0}
-                  className="px-2 py-1 rounded text-xs bg-white border border-gray-200 disabled:opacity-30 hover:bg-gray-50 transition-colors"
-                >←</button>
+                  aria-label="Previous question"
+                  className="rounded-lg bg-white px-2.5 py-1.5 text-xs ring-1 ring-[var(--sp-border)] transition hover:bg-[var(--sp-primary-50)] disabled:opacity-30"
+                >Previous</button>
                 <button
                   onClick={() => setIdx(i => Math.min(total - 1, i + 1))}
                   disabled={idx >= total - 1}
-                  className="px-2 py-1 rounded text-xs bg-white border border-gray-200 disabled:opacity-30 hover:bg-gray-50 transition-colors"
-                >→</button>
+                  aria-label="Next question"
+                  className="rounded-lg bg-white px-2.5 py-1.5 text-xs ring-1 ring-[var(--sp-border)] transition hover:bg-[var(--sp-primary-50)] disabled:opacity-30"
+                >Next</button>
               </div>
             </div>
-            <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
-              <div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${((idx + 1) / total) * 100}%` }} />
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--sp-primary-100)]">
+              <div className="h-full bg-[var(--sp-primary-600)] transition-all duration-300" style={{ width: `${((idx + 1) / total) * 100}%` }} />
             </div>
           </div>
         )}
@@ -1014,27 +1081,30 @@ export function BrowsePage({ progress, onAnswer: _onAnswer, onNavigate, apiKey, 
               apiKey={apiKey}
             />
             {/* Bottom nav */}
-            <div className="flex gap-2 mt-4 pb-8">
+            <div className="mt-4 flex gap-3 pb-8">
               <button
                 onClick={() => setIdx(i => Math.max(0, i - 1))}
                 disabled={idx === 0}
-                className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 disabled:opacity-30 hover:bg-gray-50 transition-colors"
+                className="flex-1 rounded-xl bg-white py-3 text-sm font-semibold text-[var(--sp-ink)] ring-1 ring-[var(--sp-border)] transition hover:bg-[var(--sp-primary-50)] disabled:opacity-30"
               >
-                ← Previous
+                Previous
               </button>
               <button
                 onClick={() => setIdx(i => Math.min(total - 1, i + 1))}
                 disabled={idx >= total - 1}
-                className="flex-1 py-3 rounded-xl bg-gray-900 text-white text-sm font-semibold disabled:opacity-30 hover:bg-gray-700 transition-colors"
+                className="flex-1 rounded-xl bg-[var(--sp-primary-700)] py-3 text-sm font-semibold text-white transition hover:bg-[var(--sp-primary-800)] disabled:opacity-30"
               >
-                Next →
+                Next
               </button>
             </div>
           </>
         ) : (
-          <p className="text-center text-gray-400 py-20 text-sm">No questions match your filter.</p>
+          <div className="rounded-2xl bg-white px-6 py-16 text-center ring-1 ring-[var(--sp-border)]">
+            <p className="font-medium text-[var(--sp-ink)]">No matching questions</p>
+            <p className="mt-1 text-sm text-[var(--sp-muted)]">Try a different topic or filter.</p>
+          </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

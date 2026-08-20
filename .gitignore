@@ -1,5 +1,8 @@
 # Dependencies
 node_modules
+**/bin/
+**/obj/
+backend/SkillPath.Api/App_Data/
 
 # Build output
 dist
@@ -57,6 +60,7 @@ TODO.md
 # ─── Tool / editor state — user-specific, do not commit ─────────────────────
 .claude/
 .agents/
+.impeccable/
 .cursor/
 .aider*
 CLAUDE.md

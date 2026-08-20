@@ -6,7 +6,13 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores([
+    'dist',
+    // Private source banks are imported into the database by an AST exporter;
+    // runtime application code is still linted normally.
+    'src/data/questions.ts',
+    'src/data/questions_aws.ts',
+  ]),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

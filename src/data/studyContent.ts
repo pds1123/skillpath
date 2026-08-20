@@ -8,7 +8,6 @@ export interface StudySection {
 export interface DomainStudy {
   certification: CertificationKey;
   domain: string;
-  emoji: string;
   summary: string;
   sections: StudySection[];
 }
@@ -21,7 +20,6 @@ export const STUDY_CONTENT: DomainStudy[] = [
   {
     certification: 'AZ-900',
     domain: 'Cloud Service Models',
-    emoji: '☁️',
     summary: 'IaaS, PaaS, and SaaS define how much control you have vs. what Microsoft manages.',
     sections: [
       {
@@ -45,7 +43,6 @@ export const STUDY_CONTENT: DomainStudy[] = [
   {
     certification: 'AZ-900',
     domain: 'Cloud Deployment Models',
-    emoji: '🌐',
     summary: 'Public, Private, and Hybrid clouds define where your resources live.',
     sections: [
       {
@@ -69,7 +66,6 @@ export const STUDY_CONTENT: DomainStudy[] = [
   {
     certification: 'AZ-900',
     domain: 'Azure Architecture',
-    emoji: '🏗️',
     summary: 'Azure is organized into geographies, regions, availability zones, and resource containers.',
     sections: [
       {
@@ -97,7 +93,6 @@ export const STUDY_CONTENT: DomainStudy[] = [
   {
     certification: 'AZ-900',
     domain: 'Azure Compute',
-    emoji: '💻',
     summary: 'Azure offers VMs, containers, serverless, and managed app platforms.',
     sections: [
       {
@@ -129,7 +124,6 @@ export const STUDY_CONTENT: DomainStudy[] = [
   {
     certification: 'AZ-900',
     domain: 'Azure Storage',
-    emoji: '🗄️',
     summary: 'Azure offers multiple storage types with configurable redundancy options.',
     sections: [
       {
@@ -153,7 +147,6 @@ export const STUDY_CONTENT: DomainStudy[] = [
   {
     certification: 'AZ-900',
     domain: 'Azure Networking',
-    emoji: '🌍',
     summary: 'Azure networking connects resources securely within Azure and to on-premises/internet.',
     sections: [
       {
@@ -185,7 +178,6 @@ export const STUDY_CONTENT: DomainStudy[] = [
   {
     certification: 'AZ-900',
     domain: 'Identity & Access',
-    emoji: '🔐',
     summary: 'Azure uses Microsoft Entra ID (formerly Azure AD) for identity and RBAC for authorization.',
     sections: [
       {
@@ -213,7 +205,6 @@ export const STUDY_CONTENT: DomainStudy[] = [
   {
     certification: 'AZ-900',
     domain: 'Security & Compliance',
-    emoji: '🛡️',
     summary: 'Azure offers multiple security tools and meets major compliance standards.',
     sections: [
       {
@@ -241,7 +232,6 @@ export const STUDY_CONTENT: DomainStudy[] = [
   {
     certification: 'AZ-900',
     domain: 'Cost Management',
-    emoji: '💰',
     summary: 'Azure has flexible pricing with tools to estimate, track, and optimize costs.',
     sections: [
       {
@@ -269,7 +259,6 @@ export const STUDY_CONTENT: DomainStudy[] = [
   {
     certification: 'AZ-900',
     domain: 'SLA & Support',
-    emoji: '📋',
     summary: 'Azure SLAs guarantee uptime percentages, and support plans offer different response times.',
     sections: [
       {
@@ -289,7 +278,6 @@ export const STUDY_CONTENT: DomainStudy[] = [
   {
     certification: 'AZ-900',
     domain: 'Monitoring',
-    emoji: '📊',
     summary: 'Azure Monitor is the core platform for collecting metrics, logs, and alerts.',
     sections: [
       {
@@ -317,7 +305,6 @@ export const STUDY_CONTENT: DomainStudy[] = [
   {
     certification: 'AZ-900',
     domain: 'Governance',
-    emoji: '⚖️',
     summary: 'Azure governance tools help enforce policies, organize resources, and control access at scale.',
     sections: [
       {
@@ -345,7 +332,6 @@ export const STUDY_CONTENT: DomainStudy[] = [
   {
     certification: 'AZ-900',
     domain: 'General Azure',
-    emoji: '🔷',
     summary: 'Core Azure concepts covering portal, tools, and fundamental services.',
     sections: [
       {
@@ -370,7 +356,6 @@ export const STUDY_CONTENT: DomainStudy[] = [
   {
     certification: 'CLF-C02',
     domain: 'Cloud Concepts',
-    emoji: '💡',
     summary: 'Six benefits of cloud, the AWS Well-Architected Framework, deployment models, and the shared responsibility model.',
     sections: [
       {
@@ -454,7 +439,6 @@ Used to identify capability gaps and plan cloud journey.`,
   {
     certification: 'CLF-C02',
     domain: 'Security & Compliance',
-    emoji: '🔒',
     summary: 'IAM, encryption, security services, compliance, and where AWS vs customer responsibility begins and ends.',
     sections: [
       {
@@ -552,7 +536,6 @@ Report abuse originating from AWS resources (spam, DDoS, malware) via the AWS Tr
   {
     certification: 'CLF-C02',
     domain: 'Cloud Technology & Services',
-    emoji: '☁️',
     summary: 'AWS compute, storage, database, networking, migration, and management services.',
     sections: [
       {
@@ -705,7 +688,6 @@ You are not expected to configure these for CLF-C02 — just know what problem e
   {
     certification: 'CLF-C02',
     domain: 'Billing, Pricing & Support',
-    emoji: '💰',
     summary: 'AWS pricing models, cost tools, billing accounts, and the four support plans.',
     sections: [
       {
@@ -816,7 +798,3 @@ Infrastructure Event Management (IEM) — engineered support during major events
     ],
   },
 ];
-
-export const DOMAIN_EMOJI: Record<string, string> = Object.fromEntries(
-  STUDY_CONTENT.map(d => [d.domain, d.emoji])
-);
