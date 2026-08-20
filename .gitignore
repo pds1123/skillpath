@@ -3,6 +3,8 @@ node_modules
 **/bin/
 **/obj/
 backend/SkillPath.Api/App_Data/
+backend/database/skillpath-data-relations.png
+backend/database/skillpath-data-relations.svg
 
 # Build output
 dist
