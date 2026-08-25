@@ -11,19 +11,45 @@
 
 export type QuestionType = 'multiple_choice' | 'yes_no' | 'drag_drop' | 'hotspot';
 export type QuestionMode = 'quiz' | 'reveal' | 'read';
-export type CertificationKey = 'AZ-900' | 'CLF-C02';
+export type CertificationKey = 'AZ-900' | 'CLF-C02' | 'CTFL';
+export type SkillKey = 'azure-fundamentals' | 'aws-fundamentals' | 'istqb-ctfl';
+
+export interface Skill {
+  key: SkillKey;
+  name: string;
+  shortName: string;
+  provider: 'Azure' | 'AWS' | 'ISTQB';
+  level: 'Beginner' | 'Intermediate' | 'Advanced';
+  certificationAlignment?: CertificationKey;
+}
+
+export const SKILLS: Skill[] = [
+  { key: 'azure-fundamentals', name: 'Microsoft Azure Fundamentals', shortName: 'Azure Fundamentals', provider: 'Azure', level: 'Beginner', certificationAlignment: 'AZ-900' },
+  { key: 'aws-fundamentals', name: 'AWS Cloud Fundamentals', shortName: 'AWS Fundamentals', provider: 'AWS', level: 'Beginner', certificationAlignment: 'CLF-C02' },
+  { key: 'istqb-ctfl', name: 'ISTQB Certified Tester Foundation Level', shortName: 'ISTQB CTFL', provider: 'ISTQB', level: 'Beginner', certificationAlignment: 'CTFL' },
+];
 
 export interface Certification {
   key: CertificationKey;
   name: string;
   shortName: string;
-  provider: 'Azure' | 'AWS';
+  provider: 'Azure' | 'AWS' | 'ISTQB';
+  mockQuestionCount: number;
+  mockDurationMinutes: number;
+  passScore: number;
+  aligns: SkillKey;
 }
 
 export const CERTIFICATIONS: Certification[] = [
-  { key: 'AZ-900', name: 'Azure Fundamentals', shortName: 'AZ-900', provider: 'Azure' },
-  { key: 'CLF-C02', name: 'AWS Cloud Practitioner', shortName: 'CLF-C02', provider: 'AWS' },
+  { key: 'AZ-900', name: 'Azure Fundamentals', shortName: 'AZ-900', provider: 'Azure', mockQuestionCount: 45, mockDurationMinutes: 45, passScore: 0.7, aligns: 'azure-fundamentals' },
+  { key: 'CLF-C02', name: 'AWS Cloud Practitioner', shortName: 'CLF-C02', provider: 'AWS', mockQuestionCount: 65, mockDurationMinutes: 45, passScore: 0.7, aligns: 'aws-fundamentals' },
+  { key: 'CTFL', name: 'ISTQB Certified Tester Foundation Level', shortName: 'ISTQB CTFL', provider: 'ISTQB', mockQuestionCount: 40, mockDurationMinutes: 60, passScore: 0.65, aligns: 'istqb-ctfl' },
 ];
+
+export function skillForCert(cert: CertificationKey): Skill {
+  const certification = CERTIFICATIONS.find(item => item.key === cert)!;
+  return SKILLS.find(item => item.key === certification.aligns)!;
+}
 
 export interface Question {
   id: number;
@@ -135,16 +161,25 @@ import { INTERACTIVE_DATA } from './interactiveData';
 export const ALL_QUESTIONS: Question[] = [];
 
 export async function loadQuestionBank(): Promise<void> {
-  const certifications: CertificationKey[] = ['AZ-900', 'CLF-C02'];
+  const certifications: CertificationKey[] = ['AZ-900', 'CLF-C02', 'CTFL'];
   const responses = await Promise.all(certifications.map(async certification => {
-    const response = await fetch(`/api/questions?certification=${certification}&limit=100`);
-    if (!response.ok) throw new Error(`Unable to load ${certification} questions.`);
-    const page = await response.json() as { items: Array<{
+    type QuestionPage = { items: Array<{
       id: number; legacyId: number; certification: CertificationKey; type: QuestionType;
       question: string; options: Record<string, string>; domain: string; mode: QuestionMode;
       multipleSelect: boolean; table?: Question['table'] | null;
-    }> };
-    return page.items.map(item => ({
+    }>; total: number; offset: number; limit: number };
+    const items: QuestionPage['items'] = [];
+    let offset = 0;
+    let total = 1;
+    while (offset < total) {
+      const response = await fetch(`/api/questions?certification=${certification}&offset=${offset}&limit=100`);
+      if (!response.ok) throw new Error(`Unable to load ${certification} questions.`);
+      const page = await response.json() as QuestionPage;
+      items.push(...page.items);
+      total = page.total;
+      offset += page.limit;
+    }
+    return items.map(item => ({
       ...item,
       correct_answer: [],
       answer_text: '',

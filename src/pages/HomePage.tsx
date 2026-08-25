@@ -78,8 +78,7 @@ export function HomePage({ progress, onNavigate, activeCert }: Props) {
   const skill = skillForCert(activeCert);
 
   const current = moduleStats.find(item => item.percentage < 100 && item.lessons.length > 0)
-    ?? moduleStats.find(item => item.lessons.length > 0)
-    ?? moduleStats[0];
+    ?? moduleStats.find(item => item.lessons.length > 0);
   const nextLesson = current?.lessons.find(lesson => !progress.completedLessons[lesson.key]) ?? current?.lessons[0];
   const totalLessons = moduleStats.reduce((sum, item) => sum + item.lessonTotal, 0);
   const completedLessons = moduleStats.reduce((sum, item) => sum + item.lessonCompleted, 0);
@@ -89,7 +88,12 @@ export function HomePage({ progress, onNavigate, activeCert }: Props) {
     ((completedLessons + completedChecks) / Math.max(totalLessons + totalChecks, 1)) * 100,
   );
   const streak = learningStreak(progress);
-  const providerName = activeCert === 'AZ-900' ? 'Microsoft Azure' : 'Amazon Web Services';
+  const isCtfl = activeCert === 'CTFL';
+  const providerName = activeCert === 'AZ-900'
+    ? 'Microsoft Azure'
+    : activeCert === 'CLF-C02' ? 'Amazon Web Services' : 'ISTQB CTFL';
+  const areaName = isCtfl ? 'QA & Testing' : 'Cloud';
+  const areaPage = isCtfl ? 'qa' : 'cloud';
 
   return (
     <div className="min-h-screen bg-[var(--sp-canvas)] text-[var(--sp-ink)]">
@@ -99,17 +103,19 @@ export function HomePage({ progress, onNavigate, activeCert }: Props) {
         <nav className="mb-8 flex items-center gap-2 text-xs text-[var(--sp-muted)]" aria-label="Breadcrumb">
           <button type="button" onClick={() => onNavigate('home')} className="transition hover:text-[var(--sp-primary-700)]">Home</button>
           <span aria-hidden="true">/</span>
-          <button type="button" onClick={() => onNavigate('cloud')} className="transition hover:text-[var(--sp-primary-700)]">Cloud</button>
+          <button type="button" onClick={() => onNavigate(areaPage)} className="transition hover:text-[var(--sp-primary-700)]">{areaName}</button>
           <span aria-hidden="true">/</span>
           <span className="font-medium text-[var(--sp-ink-soft)]">{providerName}</span>
         </nav>
         <section className="mb-8 sm:mb-10" aria-labelledby="path-title">
-          <p className="mb-2 text-xs font-semibold tracking-[0.08em] text-[var(--sp-muted)]">Cloud · {skill.level}</p>
+          <p className="mb-2 text-xs font-semibold tracking-[0.08em] text-[var(--sp-muted)]">{areaName} · {skill.level}</p>
           <h1 id="path-title" className="text-3xl font-semibold tracking-[-0.04em] text-[var(--sp-ink-strong)] sm:text-4xl">{providerName}</h1>
           <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--sp-muted)]">
             {activeCert === 'AZ-900'
               ? 'Understand cloud concepts first, then see how Microsoft Azure applies them.'
-              : 'Understand cloud concepts first, then see how Amazon Web Services applies them.'}
+              : activeCert === 'CLF-C02'
+                ? 'Understand cloud concepts first, then see how Amazon Web Services applies them.'
+                : 'Build a clear foundation in software testing principles, techniques, and test management.'}
           </p>
         </section>
 
@@ -148,7 +154,7 @@ export function HomePage({ progress, onNavigate, activeCert }: Props) {
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
               <h2 id="learning-path-title" className="text-xl font-semibold tracking-[-0.025em]">Learning path</h2>
-              <p className="mt-1 text-sm text-[var(--sp-muted)]">Build a mental model before learning individual services.</p>
+              <p className="mt-1 text-sm text-[var(--sp-muted)]">{isCtfl ? 'Move from testing principles into analysis, management, and tools.' : 'Build a mental model before learning individual services.'}</p>
             </div>
             <span className="hidden text-xs text-[var(--sp-muted-light)] sm:block">{modules.length} modules</span>
           </div>
@@ -172,7 +178,7 @@ export function HomePage({ progress, onNavigate, activeCert }: Props) {
                 </div>
                 <div className="mt-auto pt-5">
                   <div className="flex items-center justify-between text-[11px] text-[var(--sp-muted)]">
-                    <span>{lessonTotal > 0 ? `${lessonTotal} lessons · ${module.practiceCount} practices` : 'Coming soon'}</span>
+                    <span>{lessonTotal > 0 ? `${lessonTotal} lessons · ${module.practiceCount} ${module.practiceCount === 1 ? 'practice' : 'practices'}` : 'Practice available · lessons in development'}</span>
                     <span className="font-medium tabular-nums text-[var(--sp-ink-soft)]">{percentage}%</span>
                   </div>
                   <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--sp-primary-50)]">
@@ -201,7 +207,7 @@ export function HomePage({ progress, onNavigate, activeCert }: Props) {
               </div>
               <div className="mt-7 grid grid-cols-3 gap-3 border-t border-[var(--sp-border)] pt-5">
                 <div>
-                  <p className="text-sm font-semibold tabular-nums">{completedLessons} / {totalLessons}</p>
+                  <p className="text-sm font-semibold tabular-nums">{totalLessons > 0 ? `${completedLessons} / ${totalLessons}` : 'Planned'}</p>
                   <p className="mt-1 text-[11px] leading-4 text-[var(--sp-muted)]">lessons</p>
                 </div>
                 <div>
@@ -278,7 +284,7 @@ export function HomePage({ progress, onNavigate, activeCert }: Props) {
         <section className="flex flex-col gap-4 border-t border-[var(--sp-border)] pt-7 sm:flex-row sm:items-center" aria-labelledby="cert-title">
           <div className="flex-1">
             <p className="text-xs text-[var(--sp-muted-light)]">Preparing for a certification?</p>
-            <h2 id="cert-title" className="mt-1 text-sm font-semibold text-[var(--sp-ink-soft)]">{certMeta.shortName} · {activeCert === 'AZ-900' ? 'Azure Fundamentals' : 'AWS Certified Cloud Practitioner'}</h2>
+            <h2 id="cert-title" className="mt-1 text-sm font-semibold text-[var(--sp-ink-soft)]">{certMeta.shortName} · {certMeta.name}</h2>
           </div>
           <button
             type="button"

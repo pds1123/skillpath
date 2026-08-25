@@ -19,7 +19,10 @@ export function CertificationPage({ progress, activeCert, onNavigate }: Props) {
   }).length;
   const coverage = Math.round((attemptedQuestions.length / Math.max(questions.length, 1)) * 100);
   const accuracy = Math.round((latestCorrect / Math.max(attemptedQuestions.length, 1)) * 100);
-  const readiness = attemptedQuestions.length ? Math.round((coverage * 0.35) + (accuracy * 0.65)) : 0;
+  const evidenceConfidence = Math.min(attemptedQuestions.length / Math.min(20, Math.max(questions.length, 1)), 1);
+  const readiness = attemptedQuestions.length
+    ? Math.round((coverage * 0.35) + (accuracy * evidenceConfidence * 0.65))
+    : 0;
   const history = progress.examHistory.filter(attempt => (attempt.certification ?? 'AZ-900') === activeCert);
   const mistakes = [...questionIds].filter(id => {
     const attempts = progress.results[id] ?? [];
@@ -106,7 +109,7 @@ export function CertificationPage({ progress, activeCert, onNavigate }: Props) {
                   >
                     <strong className="w-12 text-lg tabular-nums text-[var(--sp-primary-700)]">{score}%</strong>
                     <span className="flex-1 text-xs text-[var(--sp-muted)]">{new Date(attempt.date).toLocaleDateString()} · {Math.floor(attempt.durationSec / 60)} min</span>
-                    <span className="text-xs font-medium text-[var(--sp-ink-soft)]">{score >= 70 ? 'Passed' : 'Keep practising'}</span>
+                    <span className="text-xs font-medium text-[var(--sp-ink-soft)]">{score >= certification.passScore * 100 ? 'Passed' : 'Keep practising'}</span>
                   </button>
                 );
               })}
@@ -114,7 +117,7 @@ export function CertificationPage({ progress, activeCert, onNavigate }: Props) {
           </section>
         )}
 
-        <p className="mt-10 text-[11px] leading-5 text-[var(--sp-muted-light)]">Practice only. SkillPath is not affiliated with Microsoft or AWS and does not reproduce live exam questions.</p>
+        <p className="mt-10 text-[11px] leading-5 text-[var(--sp-muted-light)]">Practice only. SkillPath is independent from certification providers and does not claim that practice content appears on a live exam.</p>
       </main>
     </div>
   );

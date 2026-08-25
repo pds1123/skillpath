@@ -9,6 +9,7 @@ import {
 } from '../data/curriculum';
 import type { ProgressState } from '../hooks/useProgress';
 import { submitQuestionAnswer, type AnswerGrade } from '../services/api';
+import { QuestionAiAnalysis } from '../components/QuestionAiAnalysis';
 
 interface Props {
   progress: ProgressState;
@@ -17,6 +18,7 @@ interface Props {
   onNavigate: (page: string, params?: Record<string, string>) => void;
   initialModule?: string;
   activeCert: CertificationKey;
+  apiKey: string;
 }
 
 function progressForModule(module: LearningModule, questions: Question[], progress: ProgressState) {
@@ -61,7 +63,7 @@ function ModuleList({ modules, progress, questions, onSelect }: {
             </div>
             <div className="mt-auto pt-5">
               <div className="flex items-center justify-between text-[11px] text-[var(--sp-muted)]">
-                <span>{stats.lessonTotal > 0 ? `${stats.lessonTotal} lessons · ${module.practiceCount} practices` : 'Coming soon'}</span>
+                <span>{stats.lessonTotal > 0 ? `${stats.lessonTotal} lessons · ${module.practiceCount} ${module.practiceCount === 1 ? 'practice' : 'practices'}` : 'Practice available · lessons in development'}</span>
                 <span className="font-medium tabular-nums text-[var(--sp-ink-soft)]">{stats.percentage}%</span>
               </div>
               <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--sp-primary-50)]">
@@ -77,15 +79,16 @@ function ModuleList({ modules, progress, questions, onSelect }: {
 
 type ModuleTab = 'learn' | 'practice';
 
-function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onBack, activeCert }: {
+function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onBack, activeCert, apiKey }: {
   module: LearningModule;
   progress: ProgressState;
   onAnswer: (id: number, correct: boolean, selected: string[]) => void;
   onToggleLesson: (lessonKey: string) => void;
   onBack: () => void;
   activeCert: CertificationKey;
+  apiKey: string;
 }) {
-  const [tab, setTab] = useState<ModuleTab>('learn');
+  const [tab, setTab] = useState<ModuleTab>(() => lessonsForModule(module).length > 0 ? 'learn' : 'practice');
   const [practiceIndex, setPracticeIndex] = useState(0);
   const [selected, setSelected] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
@@ -95,7 +98,7 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onBack, acti
   const [openLesson, setOpenLesson] = useState(0);
   const lessons = useMemo(() => lessonsForModule(module), [module]);
   const practiceQuestions = useMemo(
-    () => quizQuestionsForCert(activeCert).filter(question => module.domainMap.includes(question.domain)).slice(0, 10),
+    () => quizQuestionsForCert(activeCert).filter(question => module.domainMap.includes(question.domain)),
     [activeCert, module],
   );
   const completedCount = lessons.filter(lesson => progress.completedLessons[lesson.key]).length;
@@ -215,7 +218,10 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onBack, acti
                           <span className="w-6 shrink-0 text-center text-xs font-semibold tabular-nums text-[var(--sp-muted-light)]">{String(index + 1).padStart(2, '0')}</span>
                           <span className="min-w-0 flex-1">
                             <span className="block text-sm font-semibold text-[var(--sp-ink)]">{lesson.title}</span>
-                            <span className="mt-0.5 block text-[11px] text-[var(--sp-muted-light)]">{lesson.domain}</span>
+                            <span className="mt-0.5 block truncate text-[11px] text-[var(--sp-muted-light)]">
+                              {lesson.estimatedMinutes ? `${lesson.estimatedMinutes} min` : lesson.domain}
+                              {lesson.summary ? ` · ${lesson.summary}` : ''}
+                            </span>
                           </span>
                           <span className={`text-[var(--sp-muted-light)] transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true">⌄</span>
                         </button>
@@ -298,10 +304,21 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onBack, acti
                 </div>
 
                 {submitted ? (
-                  <div className={`mt-4 rounded-lg p-3 text-sm ${isCorrect ? 'bg-[var(--sp-primary-50)] text-[var(--sp-primary-700)]' : 'bg-[#fff1ee] text-[#813c31]'}`}>
-                    {isCorrect ? 'Correct' : `Correct answer: ${grade?.correctAnswer.join(', ')}`}
-                    {grade?.explanation && <p className="mt-2 leading-6">{grade.explanation}</p>}
-                  </div>
+                  <>
+                    <div className={`mt-4 rounded-lg p-3 text-sm ${isCorrect ? 'bg-[var(--sp-primary-50)] text-[var(--sp-primary-700)]' : 'bg-[#fff1ee] text-[#813c31]'}`}>
+                      {isCorrect ? 'Correct' : `Correct answer: ${grade?.correctAnswer.join(', ')}`}
+                      {grade?.explanation && <p className="mt-2 leading-6">{grade.explanation}</p>}
+                    </div>
+                    {grade && (
+                      <QuestionAiAnalysis
+                        key={question.id}
+                        apiKey={apiKey}
+                        question={question}
+                        correctAnswers={grade.correctAnswer}
+                        answerText={grade.explanation}
+                      />
+                    )}
+                  </>
                 ) : (
                   <button
                     type="button"
@@ -315,17 +332,30 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onBack, acti
                 {submitError && <p className="mt-3 text-sm text-red-700" role="alert">{submitError}</p>}
               </div>
 
-              {submitted && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (practiceIndex < practiceQuestions.length - 1) goQuestion(practiceIndex + 1);
-                    else { setTab('learn'); goQuestion(0); }
-                  }}
-                  className="mt-4 w-full rounded-xl bg-[var(--sp-primary-900)] py-3 text-sm font-semibold text-white transition hover:bg-[var(--sp-primary-800)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sp-primary-600)]"
-                >
-                  {practiceIndex < practiceQuestions.length - 1 ? 'Next question →' : 'Finish knowledge check'}
-                </button>
+              {(practiceIndex > 0 || practiceIndex < practiceQuestions.length - 1 || submitted) && (
+                <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row">
+                  {practiceIndex > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => goQuestion(practiceIndex - 1)}
+                      className="flex-1 rounded-xl bg-white py-3 text-sm font-semibold text-[var(--sp-ink-soft)] ring-1 ring-inset ring-[var(--sp-border)] transition hover:bg-[var(--sp-primary-50)] hover:text-[var(--sp-primary-800)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sp-primary-600)]"
+                    >
+                      ← Previous question
+                    </button>
+                  )}
+                  {(practiceIndex < practiceQuestions.length - 1 || submitted) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (practiceIndex < practiceQuestions.length - 1) goQuestion(practiceIndex + 1);
+                        else { setTab('learn'); goQuestion(0); }
+                      }}
+                      className="flex-1 rounded-xl bg-[var(--sp-primary-900)] py-3 text-sm font-semibold text-white transition hover:bg-[var(--sp-primary-800)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sp-primary-600)]"
+                    >
+                      {practiceIndex < practiceQuestions.length - 1 ? 'Next question →' : 'Finish knowledge check'}
+                    </button>
+                  )}
+                </div>
               )}
             </>
           )}
@@ -335,7 +365,7 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onBack, acti
   );
 }
 
-export function ModulesPage({ progress, onAnswer, onToggleLesson, onNavigate, initialModule, activeCert }: Props) {
+export function ModulesPage({ progress, onAnswer, onToggleLesson, onNavigate, initialModule, activeCert, apiKey }: Props) {
   const modules = useMemo(() => modulesForCert(activeCert), [activeCert]);
   const questions = useMemo(() => questionsForCert(activeCert), [activeCert]);
   const initialSelection = useMemo(
@@ -343,6 +373,7 @@ export function ModulesPage({ progress, onAnswer, onToggleLesson, onNavigate, in
     [initialModule, modules],
   );
   const selectedModule = initialSelection;
+  const pathLabel = activeCert === 'CTFL' ? 'QA & Testing Path' : 'Cloud Engineer Path';
 
   return (
     <div className="min-h-screen bg-[var(--sp-canvas)] text-[var(--sp-ink)]">
@@ -357,7 +388,7 @@ export function ModulesPage({ progress, onAnswer, onToggleLesson, onNavigate, in
               <span aria-hidden="true">←</span> Tutorial
             </button>
             <div className="mb-8 mt-8">
-              <p className="text-xs font-semibold tracking-[0.08em] text-[var(--sp-muted)]">Cloud Engineer Path</p>
+              <p className="text-xs font-semibold tracking-[0.08em] text-[var(--sp-muted)]">{pathLabel}</p>
               <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-[var(--sp-ink)]">Learning modules</h1>
               <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--sp-muted)]">Read the concepts in order, or open the module that answers what you need today.</p>
             </div>
@@ -376,6 +407,7 @@ export function ModulesPage({ progress, onAnswer, onToggleLesson, onNavigate, in
             onToggleLesson={onToggleLesson}
             onBack={() => onNavigate('modules')}
             activeCert={activeCert}
+            apiKey={apiKey}
           />
         )}
       </main>

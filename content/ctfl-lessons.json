@@ -1,0 +1,239 @@
+{
+  "version": 1,
+  "modules": [
+    {
+      "slug": "fundamentals-of-testing",
+      "domain": "Fundamentals of Testing",
+      "summary": "Understand why testing exists, how defects become failures, and how teams reason about quality.",
+      "lessons": [
+        {
+          "slug": "purpose-and-value-of-testing",
+          "title": "Purpose and Value of Testing",
+          "summary": "Testing provides evidence about quality and risk; it does not prove that software is perfect.",
+          "estimatedMinutes": 7,
+          "sortOrder": 1,
+          "content": "Testing is a structured way to learn about a product. A tester examines a work product, compares observed behaviour with expectations, and communicates evidence that helps other people make decisions. The goal is not only to find failures. Testing can also prevent defects through early feedback, build confidence in important behaviour, verify stated requirements, validate user needs, and reduce the risk of releasing unsuitable software.\n\nVerification asks whether the product was built according to its specification. Validation asks whether the resulting product solves the right problem for its users and stakeholders. A system can satisfy a written requirement and still be difficult or unsafe to use, so effective testing considers both questions.\n\nTesting cannot prove the absence of every defect. Inputs, environments, paths, and user behaviours create too many combinations to examine exhaustively. Instead, teams use risk, importance, and available time to choose valuable tests. The result of testing is therefore evidence with known limits, not a guarantee of perfection.\n\nA useful test objective is specific and decision-oriented. Examples include checking whether a payment rule is implemented correctly, assessing whether response time is acceptable under expected load, or giving stakeholders enough evidence to decide whether a release risk is tolerable."
+        },
+        {
+          "slug": "errors-defects-and-failures",
+          "title": "Errors, Defects, Failures, and Root Causes",
+          "summary": "Separate the human action, the flaw in a work product, the visible behaviour, and the condition that produced them.",
+          "estimatedMinutes": 7,
+          "sortOrder": 2,
+          "content": "An error is a human action that produces an incorrect result. A misunderstood rule, a mistaken assumption, or a typing mistake can introduce a defect into a requirement, design, codebase, test, or configuration. A defect is the flaw stored in that work product. A failure is incorrect behaviour observed when a defect is executed or otherwise activated.\n\nThese terms describe different points in a chain. Suppose a developer misunderstands a discount rule. That misunderstanding is the error. The incorrect conditional expression committed to the code is the defect. When an eligible customer receives the wrong price, the visible result is a failure. Not every defect causes a failure during every execution because the required conditions may not occur.\n\nA root cause is the deeper condition that made the error or defect more likely. It may involve unclear requirements, weak review practices, missing domain knowledge, rushed work, or a confusing interface. Fixing only the visible defect can restore the product, while addressing the root cause can prevent similar defects elsewhere.\n\nTesting and debugging are related but distinct. Testing reveals and reports failures or defects and provides information about risk. Debugging locates the cause of a failure, changes the product, and checks that the change works. After a fix, confirmation testing checks the original problem, while regression testing looks for unintended effects in other behaviour."
+        },
+        {
+          "slug": "seven-testing-principles",
+          "title": "The Seven Testing Principles",
+          "summary": "Use the testing principles as practical constraints when choosing scope, timing, and technique.",
+          "estimatedMinutes": 8,
+          "sortOrder": 3,
+          "content": "Testing shows that defects are present; it cannot prove that none remain. Exhaustive testing is normally impossible, so teams select tests according to risk and priority. These two principles explain why a good strategy is selective and transparent about coverage.\n\nEarly testing saves time because feedback on requirements, examples, and designs is cheaper to act on than a failure discovered after release. Defects also tend to cluster: a small number of components often contain a large share of the problems. Previous defect patterns can therefore guide additional investigation, although untested areas must not be ignored.\n\nTests wear out when the same checks are repeated without change. A stable suite may continue to pass while missing new risks. Teams refresh data, vary conditions, add tests for changed behaviour, and use different techniques to keep the suite informative.\n\nTesting is context dependent. A medical device, an internal reporting tool, and an entertainment website require different evidence, depth, and controls. Finally, absence of defects is a fallacy when the product does not meet user needs. Perfectly implementing the wrong behaviour is not success.\n\nThe principles are not a checklist that guarantees quality. They are reminders that testing has limits, that timing matters, and that test choices should respond to the product's purpose and risk."
+        },
+        {
+          "slug": "test-activities-independence-and-psychology",
+          "title": "Test Activities, Independence, and Psychology",
+          "summary": "Testing is a connected set of activities supported by constructive communication and appropriate independence.",
+          "estimatedMinutes": 8,
+          "sortOrder": 4,
+          "content": "A typical test process includes planning, monitoring and control, analysis, design, implementation, execution, and completion. These activities overlap and repeat. Analysis identifies what should be tested. Design turns test conditions into test cases and coverage. Implementation prepares procedures, data, environments, and suites. Execution compares actual and expected results. Completion consolidates outcomes, open risks, and reusable assets.\n\nTraceability links the test basis, test conditions, test cases, results, and defects. It helps a team explain what has been covered, evaluate the effect of a change, and identify gaps. Traceability is most useful when it supports decisions rather than becoming documentation created only for compliance.\n\nIndependence can reduce the bias that comes from checking one's own work. A different perspective may challenge assumptions and find different defects. Independence ranges from self-testing, to another team member, to a separate test group or external organization. Greater independence can improve objectivity, but it may also slow feedback or create distance from development knowledge. The right level depends on risk and context.\n\nCommunication strongly affects testing. Defect reports can feel like criticism even when they describe product behaviour. Effective testers use neutral evidence, explain impact, listen to other perspectives, and focus discussion on shared quality goals. A whole-team approach makes quality everyone's responsibility while preserving the tester's specialist contribution."
+        }
+      ]
+    },
+    {
+      "slug": "testing-throughout-the-sdlc",
+      "domain": "Testing Throughout the Software Development Lifecycle",
+      "summary": "Place testing throughout development and understand the purpose of each test level and test type.",
+      "lessons": [
+        {
+          "slug": "testing-in-development-approaches",
+          "title": "Testing in Development Approaches",
+          "summary": "Testing adapts to sequential, iterative, incremental, and continuous delivery models.",
+          "estimatedMinutes": 8,
+          "sortOrder": 1,
+          "content": "A development lifecycle shapes when information becomes available and how quickly feedback can influence the product. In a sequential approach, major phases are completed in order, so later dynamic testing may depend heavily on earlier reviews and clearly defined acceptance criteria. In iterative and incremental approaches, small portions of the product are designed, built, and tested repeatedly. This creates frequent opportunities to learn and reprioritize.\n\nAgile teams integrate testing into short delivery cycles. Testers contribute examples, risks, and acceptance criteria before implementation, collaborate during development, and test completed increments. DevOps extends this feedback loop into deployment and operations through automated pipelines, monitoring, and shared responsibility.\n\nShift-left means performing suitable test activities earlier, not moving every test to the beginning. Reviewing a user story, checking an API contract, or running a fast component test can reveal problems before expensive system testing. Shift-right complements this with learning from production-like environments, monitoring, experiments, and operational feedback.\n\nNo lifecycle removes the need for thoughtful testing. The strategy should match the way work is delivered. Useful questions include: When can we review the test basis? What can be checked at a lower level? Which feedback must be fast? What evidence is still required at the integrated-system level?"
+        },
+        {
+          "slug": "test-levels",
+          "title": "Test Levels and Their Objectives",
+          "summary": "Component, integration, system, and acceptance testing examine different objects and risks.",
+          "estimatedMinutes": 8,
+          "sortOrder": 2,
+          "content": "A test level groups activities around a particular test object and objective. Component testing examines a small unit such as a function, class, or service. It is usually fast and helps localize defects. Component integration testing examines interfaces and interactions between components, including data formats, calls, error handling, and timing.\n\nSystem testing evaluates the behaviour of the complete integrated system against functional and non-functional expectations. It can reveal problems that only appear when components, infrastructure, configuration, and data work together. System integration testing focuses on interactions between the system and external systems or services.\n\nAcceptance testing evaluates whether the product is ready for use and meets business or operational needs. It may include user, operational, contractual, regulatory, alpha, or beta testing depending on context. Acceptance testing is not simply system testing performed by a different person; its objectives and decision makers are different.\n\nThe levels should complement rather than duplicate one another. A calculation rule may be checked thoroughly at component level, while a smaller set of system tests confirms that the rule is connected correctly to the user workflow. Choosing the lowest effective level usually gives faster feedback and clearer diagnosis, while higher levels provide confidence in integrated behaviour."
+        },
+        {
+          "slug": "test-types-and-quality-characteristics",
+          "title": "Test Types and Quality Characteristics",
+          "summary": "Test types focus attention on functions, quality characteristics, structure, and change.",
+          "estimatedMinutes": 7,
+          "sortOrder": 3,
+          "content": "Functional testing checks what the system does. It derives expectations from business rules, requirements, user stories, models, and examples. Functional tests can be performed at every test level and do not require knowledge of the internal implementation.\n\nNon-functional testing checks how well the system behaves. Relevant quality characteristics may include performance efficiency, usability, reliability, security, compatibility, maintainability, and portability. A non-functional expectation should be measurable enough to evaluate. 'The page should be fast' is vague; 'the response should complete within two seconds under the expected load' can be tested.\n\nWhite-box testing derives coverage from internal structure, such as statements, branches, or data flow. It can reveal untested implementation paths but does not by itself show that business rules are correct. Black-box and white-box approaches answer different questions and are often combined.\n\nChange-related testing includes confirmation and regression testing. Confirmation testing checks that a specific defect has been corrected. Regression testing checks whether a change has unintentionally damaged previously working behaviour. The scope of regression testing depends on impact analysis, risk, and the reliability of available automated checks."
+        },
+        {
+          "slug": "maintenance-testing-and-test-first-development",
+          "title": "Maintenance Testing and Test-First Development",
+          "summary": "Changes, migrations, and retirement create new test needs; test-first practices create earlier feedback.",
+          "estimatedMinutes": 8,
+          "sortOrder": 4,
+          "content": "Maintenance testing is triggered by changes to an operational system or its environment. Triggers include enhancements, defect fixes, platform upgrades, data migrations, infrastructure changes, and retirement. Even a small change can affect connected behaviour, so impact analysis identifies what changed, what depends on it, and what regression scope is justified.\n\nMigration testing checks the transformation and movement of data as well as business continuity. Retirement testing may verify archival, retention, restoration, and the safe removal of integrations. Operational context matters because production data volumes, permissions, schedules, and dependencies may differ from development environments.\n\nTest-first approaches make examples executable before or alongside implementation. Test-driven development uses small technical tests to guide code design. Acceptance test-driven development uses business-facing examples to create shared understanding of a feature. Behaviour-driven development expresses examples in domain language, often using a Given-When-Then structure.\n\nThese approaches do more than produce regression tests. Their main value is earlier conversation about expected behaviour. They work best when examples cover important rules and boundaries without becoming a second, overly detailed specification that is expensive to maintain."
+        }
+      ]
+    },
+    {
+      "slug": "static-testing",
+      "domain": "Static Testing",
+      "summary": "Find problems without executing the software by reviewing work products and analysing structure.",
+      "lessons": [
+        {
+          "slug": "static-testing-and-early-feedback",
+          "title": "Static Testing and Early Feedback",
+          "summary": "Static testing evaluates work products without executing the code under test.",
+          "estimatedMinutes": 7,
+          "sortOrder": 1,
+          "content": "Static testing examines a work product without executing the software represented by it. Reviews can be applied to requirements, user stories, acceptance criteria, designs, source code, test cases, contracts, plans, and documentation. Static analysis tools examine properties of code or other structured artefacts automatically.\n\nStatic and dynamic testing find different kinds of problems. A review may reveal ambiguity, inconsistency, missing cases, unreachable code, insecure patterns, or a violation of a standard. Dynamic testing observes behaviour when software runs and can reveal failures such as an incorrect calculation or timeout. Some defects are easier and cheaper to find statically, while others require execution.\n\nEarly feedback reduces rework. If an ambiguous requirement is corrected before design and implementation, several downstream defects may never be created. Static testing also improves shared understanding because reviewers discuss assumptions and examples before those assumptions become code.\n\nA review is not valuable merely because a meeting occurred. It should have a clear scope, suitable reviewers, useful entry information, recorded findings, and follow-up. The depth of the review should match the risk and purpose of the work product."
+        },
+        {
+          "slug": "review-process",
+          "title": "A Practical Review Process",
+          "summary": "Plan, initiate, review individually, communicate findings, analyse them, and follow up.",
+          "estimatedMinutes": 8,
+          "sortOrder": 2,
+          "content": "A review begins with planning. The team defines the work product, scope, objective, participants, schedule, review type, and completion criteria. During initiation, reviewers receive the material, context, standards, checklists, and access they need. A short overview can clarify purpose without turning the review into a presentation.\n\nIndividual review is where each reviewer examines the work product and records potential defects, questions, and recommendations. Independent preparation prevents the first speaker from shaping every other reviewer's opinion. Communication and analysis then combine the findings, discuss their status and impact, and decide what action is required. A meeting is optional; asynchronous discussion may be more efficient for simple or distributed work.\n\nFixing and reporting follow the analysis. The author or owner addresses accepted findings, and the review leader checks completion against the agreed criteria. Useful measures can include review effort, finding types, affected areas, and rework, but metrics should improve the process rather than rank individuals.\n\nA finding is not automatically a defect. It may be a question, improvement, or misunderstanding. Reviews work best when participants separate observation from judgement and focus on the work product rather than its author."
+        },
+        {
+          "slug": "review-types-and-roles",
+          "title": "Review Types and Roles",
+          "summary": "Choose a review style and degree of formality that match the objective and risk.",
+          "estimatedMinutes": 8,
+          "sortOrder": 3,
+          "content": "An informal review has limited prescribed process and is useful for rapid feedback, pairing, or a quick peer check. A walkthrough is commonly led by the author and can support learning, shared understanding, scenario exploration, and defect detection. A technical review is performed by technically qualified peers and focuses on technical correctness, alternatives, and standards.\n\nAn inspection is the most formal review type. It uses defined roles, entry and exit criteria, individual preparation, systematic examination, recorded findings, and follow-up. Formality increases control and repeatability, but it also costs time. High formality is justified when the work product is high risk, regulated, complex, or especially costly to correct later.\n\nCommon roles include the author, reviewers, a review leader, a facilitator or moderator, management, and a scribe. One person may hold several roles in a lightweight review. The author explains context and addresses findings but should not dominate the evaluation. The facilitator supports a constructive process, while the scribe records decisions and actions.\n\nThe best reviewers bring relevant perspectives. A requirement may benefit from business, development, testing, security, operations, and accessibility viewpoints. More reviewers are not always better; the selected group should match the risks being examined."
+        },
+        {
+          "slug": "static-analysis-and-review-success",
+          "title": "Static Analysis and Review Success Factors",
+          "summary": "Tools detect structural patterns, while people provide context, judgement, and shared understanding.",
+          "estimatedMinutes": 7,
+          "sortOrder": 4,
+          "content": "Static analysis tools examine artefacts without executing the application. For source code they may detect unreachable code, unsafe constructs, possible null access, security weaknesses, excessive complexity, dependency issues, or violations of coding standards. Other tools can analyse models, configuration, infrastructure definitions, or documentation.\n\nTool findings require interpretation. A reported issue may be a true defect, a risk worth investigating, or a false positive. Teams tune rules and thresholds so that important signals are not hidden by noise. Static analysis works well in a delivery pipeline when feedback is fast and developers can act while the change is still familiar.\n\nSuccessful reviews need clear objectives, management support, appropriate participants, enough preparation time, manageable work-product size, and a culture that treats findings as learning. Training and checklists help reviewers look for relevant defect types. Checklists should evolve when the team learns about new failure patterns.\n\nReview success should not be measured only by the number of findings. A review may create value by resolving ambiguity, spreading domain knowledge, improving testability, or confirming that a high-risk decision is sound. The measure should reflect the objective of the review."
+        }
+      ]
+    },
+    {
+      "slug": "test-analysis-and-design",
+      "domain": "Test Analysis and Design",
+      "summary": "Turn a test basis into focused conditions, cases, data, and coverage using complementary techniques.",
+      "lessons": [
+        {
+          "slug": "from-test-basis-to-test-cases",
+          "title": "From Test Basis to Test Cases",
+          "summary": "Identify what to test, select coverage, and turn conditions into executable cases.",
+          "estimatedMinutes": 8,
+          "sortOrder": 1,
+          "content": "The test basis is the information used to derive tests. It may include requirements, user stories, risks, models, architecture, contracts, regulations, code, and knowledge of existing behaviour. During test analysis, the tester identifies testable features, risks, and test conditions. A test condition is an aspect that can be checked, such as a business rule, permission, state transition, or quality characteristic.\n\nDuring test design, conditions become test cases, coverage items, data needs, and expected results. A test case describes preconditions, inputs, actions where needed, and expected outcomes. Expected results should be defined before execution; otherwise an incorrect result can appear plausible.\n\nTest implementation organizes cases into procedures and suites, prepares data and environments, and establishes an execution order. Preconditions and dependencies matter. A test for editing an order may require an existing order in a suitable state and a user with the right permission.\n\nGood test cases are traceable to their purpose but do not contain unnecessary detail. The right level depends on the user's knowledge, the stability of the interface, audit needs, and whether automation will execute the steps. Techniques provide systematic ways to choose cases rather than relying only on intuition."
+        },
+        {
+          "slug": "equivalence-partitioning-and-boundaries",
+          "title": "Equivalence Partitioning and Boundary Values",
+          "summary": "Reduce a large input space into meaningful groups and test where behaviour changes.",
+          "estimatedMinutes": 9,
+          "sortOrder": 2,
+          "content": "Equivalence partitioning divides values into groups that are expected to be processed in the same way. If an age field accepts values from 18 through 65, useful partitions include values below 18, values from 18 through 65, and values above 65. A representative value from each partition provides broader reasoning than several values from the same group.\n\nPartitions can apply to inputs, outputs, configurations, time, users, states, and business rules. They should be both valid and invalid where relevant. The quality of the technique depends on identifying the rules that cause behaviour to differ.\n\nBoundary value analysis focuses on the edges of ordered partitions because defects often occur where conditions use the wrong comparison or index. For the inclusive range 18 to 65, two-value boundary coverage might use 17, 18, 65, and 66. A stronger three-value approach also checks values just inside each boundary, such as 19 and 64.\n\nBoundaries are not limited to numbers. Dates, lengths, counts, storage limits, timeouts, and ordered workflow stages can all have edges. When several boundaries interact, risk and combinatorial techniques help select a manageable set rather than attempting every combination."
+        },
+        {
+          "slug": "decision-tables-and-state-transitions",
+          "title": "Decision Tables and State Transitions",
+          "summary": "Model combinations of rules and sequences of behaviour before choosing tests.",
+          "estimatedMinutes": 9,
+          "sortOrder": 3,
+          "content": "Decision table testing is useful when an outcome depends on combinations of conditions. Conditions appear in the upper part of a table, actions in the lower part, and each column represents a rule. For a discount, conditions might include membership status and order value; actions might include applying a discount or rejecting an invalid code.\n\nBuilding the table exposes missing, impossible, contradictory, and duplicate rules. A full table contains every combination, while a limited-entry or collapsed table removes combinations that do not affect the result. Tests are then selected to cover the meaningful rules.\n\nState transition testing is useful when behaviour depends on current state and event history. A model identifies states, events, valid transitions, actions, and invalid transitions. For an account login, repeated failed attempts may move the account from active to locked; the same password behaves differently depending on the current state.\n\nTransition coverage checks individual valid transitions. Stronger coverage may check pairs or longer sequences because some defects only appear after a particular path. Tests should also examine important invalid transitions, such as attempting to ship an order that has already been cancelled. The model is valuable even before execution because it makes hidden lifecycle assumptions visible."
+        },
+        {
+          "slug": "structural-and-experience-based-techniques",
+          "title": "Structural and Experience-Based Techniques",
+          "summary": "Combine code coverage, domain experience, exploratory testing, and collaborative examples.",
+          "estimatedMinutes": 9,
+          "sortOrder": 4,
+          "content": "Statement testing aims to execute selected executable statements. Branch testing aims to exercise decision outcomes and unconditional transfers of control. Branch coverage is stronger than statement coverage because executing every statement does not guarantee that every decision outcome has been taken. Coverage measures what structure was exercised, not whether the assertions were meaningful or the requirements were correct.\n\nError guessing uses knowledge of common defects, past failures, and technical weak points. A tester may explore empty values, repeated actions, interrupted requests, stale data, or unusual sequences because similar systems have failed there. Checklist-based testing makes this experience more repeatable by recording important conditions to examine.\n\nExploratory testing combines learning, test design, and execution. A time-boxed session can be guided by a charter, such as exploring how a booking workflow handles interruption and recovery. The tester records coverage, observations, questions, and defects, then debriefs with interested stakeholders.\n\nCollaborative user-story practices use conversation and examples to clarify behaviour. Acceptance criteria should describe observable rules and boundaries rather than only happy-path steps. Black-box, white-box, and experience-based techniques are complementary: each reveals different gaps in the others."
+        }
+      ]
+    },
+    {
+      "slug": "managing-test-activities",
+      "domain": "Managing the Test Activities",
+      "summary": "Plan and control testing with realistic estimates, risk-based priorities, traceability, and useful reporting.",
+      "lessons": [
+        {
+          "slug": "test-planning-and-approach",
+          "title": "Test Planning and Test Approach",
+          "summary": "A useful plan explains objectives, scope, resources, constraints, risks, and how completion will be judged.",
+          "estimatedMinutes": 8,
+          "sortOrder": 1,
+          "content": "Test planning establishes how testing will support project and product decisions. A plan describes objectives, scope, assumptions, test basis, levels and types, techniques, environments, data, roles, schedule, deliverables, risks, and the approach to defects and reporting. The plan should be detailed enough to guide work while remaining adaptable when the product changes.\n\nEntry criteria describe conditions that should be satisfied before an activity begins, such as an available build, reviewed requirements, or prepared data. Exit criteria describe what is required to consider an activity complete, such as achieved coverage, resolved critical defects, or documented residual risk. Criteria inform decisions; they should not force a team to hide important exceptions.\n\nA test approach translates risks and context into choices. It may be analytical and risk-based, model-based, methodical, process-compliant, reactive, or a combination. The approach identifies where deeper testing is justified and where lighter evidence is sufficient.\n\nPlanning is continuous. Monitoring may reveal unstable builds, missing environments, new risks, or slower progress. Test control responds by changing priorities, scope, resources, sequence, or schedule while preserving visibility of the resulting trade-offs."
+        },
+        {
+          "slug": "estimation-and-prioritization",
+          "title": "Estimation and Prioritization",
+          "summary": "Estimate with evidence and uncertainty, then order tests to deliver the most useful feedback first.",
+          "estimatedMinutes": 8,
+          "sortOrder": 2,
+          "content": "Test estimates consider scope, complexity, quality of the test basis, product risk, team skills, environments, data, tools, dependencies, and the amount of regression testing. Historical ratios can provide a starting point when past work is comparable. Expert-based methods use informed judgement, while techniques such as planning poker combine several perspectives.\n\nThree-point estimation records optimistic, most likely, and pessimistic outcomes. A weighted estimate can be calculated as (optimistic + four times most likely + pessimistic) divided by six. The range is as important as the central number because it makes uncertainty visible.\n\nAn estimate is not a promise detached from assumptions. Teams should record what the estimate includes, what information is missing, and what events would require revision. Breaking work into smaller conditions or activities usually produces more useful estimates than assigning one number to an entire test phase.\n\nPrioritization decides what to run first. Tests may be ordered by risk, business importance, failure impact, recent change, dependency, defect history, or speed of feedback. High-priority tests should not permanently crowd out lower-priority coverage; the remaining risk must stay visible."
+        },
+        {
+          "slug": "risk-based-testing",
+          "title": "Risk-Based Testing",
+          "summary": "Use likelihood and impact to focus test depth, timing, and expertise where failure matters most.",
+          "estimatedMinutes": 9,
+          "sortOrder": 3,
+          "content": "Product risk is the possibility that a product characteristic will fail and cause negative consequences. Risk has two dimensions: likelihood and impact. A rarely used function with a minor effect may be low risk, while an incorrect payment, privacy breach, or safety failure may be high risk even if the triggering condition is uncommon.\n\nRisk analysis identifies risks, estimates their level, and considers affected quality characteristics. Stakeholders contribute different knowledge: business representatives understand value and loss, developers understand technical complexity, operations understands production conditions, and testers connect these perspectives to evidence.\n\nRisk-based testing uses the analysis to select test techniques, coverage, environments, data, independence, and execution order. A high-risk calculation may receive boundary analysis, code review, component coverage, system tests, and specialist review. A low-risk cosmetic variation may receive a lighter check.\n\nTesting can reduce uncertainty but cannot remove every risk. Results may lower the estimated likelihood, reveal greater impact, or identify new risks. Residual risk is what remains after testing and other controls. Test reporting should make that residual risk understandable so the release decision is informed rather than presented as a simple pass or fail."
+        },
+        {
+          "slug": "monitoring-configuration-and-defects",
+          "title": "Monitoring, Configuration, and Defect Management",
+          "summary": "Maintain trustworthy test evidence by controlling versions, reporting progress, and recording actionable defects.",
+          "estimatedMinutes": 9,
+          "sortOrder": 4,
+          "content": "Test monitoring compares actual progress with the plan. Useful information may include completed conditions, achieved coverage, pass and failure trends, blocked tests, defect status, environment health, effort, and remaining product risk. A metric is useful only when its meaning and limitations are understood. A high pass rate can be misleading if important tests are blocked or missing.\n\nTest control uses monitoring information to take action. The team might reprioritize tests after a risky change, add people with specialist knowledge, repair an environment, reduce low-value scope, or revise the schedule. Reports should explain the reason and consequence of such decisions.\n\nConfiguration management uniquely identifies and versions test objects, testware, data, environments, tools, and results. It allows a team to reproduce what was tested and trace evidence to a specific build and configuration. Without this control, a result may be correct but impossible to interpret.\n\nA useful defect report includes a clear summary, environment and build, preconditions, reproducible steps, expected and actual results, evidence, severity, priority where appropriate, and links to related tests or requirements. Severity describes impact; priority describes urgency. Defect management tracks the issue through analysis, decision, correction, confirmation, and closure while preserving the history needed for learning."
+        }
+      ]
+    },
+    {
+      "slug": "test-tools",
+      "domain": "Test Tools",
+      "summary": "Use tools to improve repeatability and feedback while managing adoption, maintenance, and false confidence.",
+      "lessons": [
+        {
+          "slug": "tool-support-across-testing",
+          "title": "Tool Support Across Testing",
+          "summary": "Different tools support planning, design, static testing, execution, performance, and collaboration.",
+          "estimatedMinutes": 7,
+          "sortOrder": 1,
+          "content": "Tools can support many test activities. Management tools organize cases, plans, traceability, results, and defects. Static-analysis tools inspect code or structured artefacts. Test-design tools help generate combinations, data, models, or expected results. Execution tools drive interfaces or APIs and compare outcomes. Performance tools generate load and measure behaviour. Service virtualization and test-data tools make difficult dependencies more controllable.\n\nA tool supports an activity; it does not replace the reasoning behind that activity. Automating poorly selected checks makes them run faster without making them more valuable. A team still needs to identify risks, design suitable oracles, interpret results, and investigate unexpected behaviour.\n\nIntegration matters. A useful tool may need to work with source control, build pipelines, identity, environments, reporting, and existing team workflows. Data ownership, security, accessibility, licensing, and support can be as important as feature lists.\n\nThe expected benefit should be stated before selecting a tool. Examples include faster feedback on critical behaviour, more repeatable regression checks, earlier detection of code-quality problems, reliable environment setup, or clearer visibility of test progress."
+        },
+        {
+          "slug": "automation-benefits-and-risks",
+          "title": "Automation Benefits and Risks",
+          "summary": "Automation can extend coverage and consistency, but it also introduces code, maintenance, and interpretation risks.",
+          "estimatedMinutes": 8,
+          "sortOrder": 2,
+          "content": "Automation is valuable for repeatable tasks, frequent regression checks, large data sets, precise comparisons, rapid feedback, and tests that are impractical to perform manually. It can free people to spend more time on exploration, analysis, and unusual scenarios. Automated execution also creates consistent logs and timing information.\n\nAutomation has costs. Scripts and frameworks are software products that require design, review, versioning, debugging, and maintenance. Unstable interfaces, weak test data, slow environments, and unreliable assertions can create flaky results. A large suite may produce false confidence if it checks only familiar paths or if failures are routinely ignored.\n\nNot every test should be automated. A good candidate is valuable when repeated, has a clear expected result, runs in a controllable environment, and is stable enough to justify maintenance. One-time investigations, rapidly changing interfaces, and tests requiring human judgement may be better performed manually or supported by smaller tools.\n\nThe goal is reliable information, not the largest possible automation count. Teams should monitor execution time, failure causes, maintenance effort, defect detection, and the speed at which results lead to action."
+        },
+        {
+          "slug": "tool-selection-and-pilots",
+          "title": "Tool Selection and Pilot Projects",
+          "summary": "Select tools against real needs and prove the operating model with a representative pilot.",
+          "estimatedMinutes": 8,
+          "sortOrder": 3,
+          "content": "Tool selection starts with the problem, not a product demonstration. The team identifies required activities, users, technologies, integrations, reporting needs, constraints, and measurable success criteria. It also considers total cost: licensing, infrastructure, training, migration, support, maintenance, and the effect on delivery workflows.\n\nA proof of concept checks whether a capability is technically possible. A pilot goes further by using the tool on a limited but representative part of real work. The pilot tests the tool, process, skills, integration, maintenance effort, and usefulness of the resulting information. A trivial example may prove the tool can run while hiding the difficulties that matter in production.\n\nEvaluation should involve the people who will use and support the tool. The team records benefits, problems, assumptions, and exit criteria. It should also plan how assets can be exported or replaced to reduce vendor lock-in.\n\nA successful pilot leads to a controlled rollout with ownership, standards, training, support, and review points. An unsuccessful pilot is still useful when it prevents a costly full adoption and clarifies what the organization actually needs."
+        },
+        {
+          "slug": "sustainable-test-automation",
+          "title": "Sustainable Test Automation",
+          "summary": "Build automation as a maintainable feedback system with clear layers, ownership, and failure diagnosis.",
+          "estimatedMinutes": 9,
+          "sortOrder": 4,
+          "content": "Sustainable automation uses the lowest effective level. Component and service tests are usually faster and easier to diagnose than end-to-end interface tests. A smaller number of end-to-end checks can cover critical integrated journeys, while lower-level tests provide detailed rule and boundary coverage. The exact shape depends on architecture and risk rather than a fixed pyramid.\n\nTests need clear ownership and readable intent. Shared helpers can reduce duplication, but excessive abstraction can hide what a test proves. Test data should be created predictably and isolated where possible. Results should identify the failed expectation, relevant inputs, environment, and evidence needed for diagnosis.\n\nFlaky tests are defects in the feedback system. Teams should investigate timing assumptions, shared state, unstable environments, data collisions, and ambiguous assertions rather than automatically rerunning failures until they pass. Quarantining a test may protect the pipeline temporarily, but the lost coverage must remain visible.\n\nAutomation evolves with the product. Reviews remove redundant checks, move tests to more suitable levels, update risks, and improve execution speed. Useful measures include feedback time, trusted pass rate, maintenance cost, failure diagnosis time, and important defects detected before release."
+        }
+      ]
+    }
+  ]
+}

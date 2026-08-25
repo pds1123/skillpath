@@ -1,6 +1,6 @@
 # SkillPath
 
-SkillPath is a full-stack learning platform for building practical IT foundations. The current release focuses on cloud concepts, guided Azure and AWS learning paths, practice questions, progress tracking, and optional certification preparation.
+SkillPath is a full-stack platform for structured, self-paced learning. The current release focuses on guided learning paths, practice questions, progress tracking, and optional assessment preparation.
 
 The product is organised around learning rather than a question catalogue: learners continue from their current lesson, move through ordered modules, check their understanding, and review previous mistakes.
 
@@ -8,19 +8,19 @@ The product is organised around learning rather than a question catalogue: learn
 
 ### Learning experience
 
-- Learning-area home with Cloud, Software Foundations, Data Foundations, and QA & Testing.
-- Structured Azure and AWS learning paths.
+- Learning-area home supporting available and planned learning paths.
+- Multiple structured learning paths.
 - Ordered modules with concept-focused lessons and knowledge checks.
 - Continue Learning, module progress, learning streak, and completed-lesson tracking.
 - Quick Practice, weak-area review, mistake review, and complete question browsing.
-- Optional AZ-900 and CLF-C02 certification preparation with timed mock assessments and review.
+- Optional certification preparation with timed mock assessments and review.
 
 ### Accounts and data
 
 - Cookie-based registration, login, logout, and current-user sessions.
 - Server-side progress persistence for signed-in users.
 - SQLite database managed through Entity Framework Core migrations.
-- Database-backed Azure and AWS question APIs.
+- Database-backed question APIs for multiple learning paths.
 - Server-side answer grading so correct answers are not exposed by question-list responses.
 
 ### Administration
@@ -170,7 +170,7 @@ A SQLite viewer extension can also open the database as a table-based interface.
 | Route | Purpose |
 |---|---|
 | `/` | Learning-area home |
-| `/cloud` | Cloud foundations and platform choices |
+| `/cloud` | Azure and AWS learning paths |
 | `/learning` | Continue Learning and progress |
 | `/learning/modules` | Module list and lessons |
 | `/questions` | Browse the complete question bank |
@@ -206,7 +206,7 @@ scripts/                Question export and source-processing utilities
 
 The following are intentionally excluded from Git:
 
-- Full Azure and AWS question banks.
+- Full private question banks.
 - Correct-answer and interactive-question source files.
 - Question images and source PDFs.
 - SQLite databases and generated seed files.

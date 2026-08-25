@@ -5,7 +5,7 @@ ASP.NET Core backend for SkillPath. It provides:
 - Cookie-based registration, login, logout, and current-user endpoints.
 - Server-side learning progress persistence.
 - EF Core migrations with a local SQLite database.
-- A database-backed Azure and AWS question API.
+- A database-backed question API supporting multiple learning paths.
 - Server-side answer grading, practice sessions, and mock-exam grading.
 
 ## Run locally
@@ -43,8 +43,8 @@ The matching account is promoted at startup. Keep this value in local environmen
 - `GET /api/auth/me`
 - `GET /api/progress`
 - `PUT /api/progress`
-- `GET /api/questions?certification=AZ-900&offset=0&limit=50`
-- `GET /api/questions/summary?certification=AZ-900`
+- `GET /api/questions?certification=EXAMPLE-CODE&offset=0&limit=50`
+- `GET /api/questions/summary?certification=EXAMPLE-CODE`
 - `GET /api/questions/{id}`
 - `POST /api/questions/{id}/attempts`
 - `POST /api/practice-sessions`
@@ -61,4 +61,4 @@ The matching account is promoted at startup. Keep this value in local environmen
 
 Question list responses do not contain correct answers. Correct answers and explanations are returned only after the answer is submitted for server-side grading.
 
-SQLite is used for local development. The domain model mirrors `database/schema.sql`, so production can move to SQL Server/Azure SQL through a provider-specific EF Core migration. Before public deployment, also add CSRF protection, rate limiting, email verification, password reset, and production secrets/configuration.
+SQLite is used for local development. The domain model mirrors `database/schema.sql`, so production can move to SQL Server or another relational provider through a provider-specific EF Core migration. Before public deployment, also add CSRF protection, rate limiting, email verification, password reset, and production secrets/configuration.

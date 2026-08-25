@@ -2,14 +2,11 @@ import { useState, useMemo } from 'react';
 import { CERTIFICATIONS, quizQuestionsForCert } from '../data/questions';
 import type { Question, CertificationKey } from '../data/questions';
 import { INTERACTIVE_DATA } from '../data/interactiveData';
-import { QUESTION_IMAGES } from '../data/questionImages';
+import { CTFL_QUESTION_IMAGES, QUESTION_IMAGES } from '../data/questionImages';
 import { Timer } from '../components/Timer';
 import { InteractiveExam } from '../components/InteractiveExam';
 import type { ExamAttempt } from '../hooks/useProgress';
 import { gradeExam, type ExamGrade } from '../services/api';
-
-const EXAM_DURATION_SEC = 45 * 60; // 45 minutes
-const PASS_SCORE = 0.7;
 
 interface Props {
   onNavigate: (page: string) => void;
@@ -34,6 +31,8 @@ export function ExamPage({ onNavigate, onExamComplete, activeCert }: Props) {
   const [startTime] = useState(() => Date.now());
   const certMeta = CERTIFICATIONS.find(c => c.key === activeCert)!;
   const mockCount = certMeta.mockQuestionCount;
+  const examDurationSeconds = certMeta.mockDurationMinutes * 60;
+  const passScore = certMeta.passScore;
   const questions = useMemo(
     () => shuffle(quizQuestionsForCert(activeCert)).slice(0, mockCount),
     [activeCert, mockCount]
@@ -64,7 +63,9 @@ export function ExamPage({ onNavigate, onExamComplete, activeCert }: Props) {
   const question: Question = questions[currentIndex];
   const sourceId = question.legacyId ?? question.id;
   const interactive = INTERACTIVE_DATA[sourceId];
-  const qImages = QUESTION_IMAGES[sourceId];
+  const qImages = question.certification === 'CTFL'
+    ? CTFL_QUESTION_IMAGES[sourceId]
+    : QUESTION_IMAGES[sourceId];
   const hasInteractive = !!interactive && interactive.kind !== 'click' && interactive.kind !== 'self_grade';
   const isClick = interactive?.kind === 'click';
   const isSelfGrade = interactive?.kind === 'self_grade';
@@ -152,7 +153,7 @@ export function ExamPage({ onNavigate, onExamComplete, activeCert }: Props) {
   if (submitted && examGrade) {
     const score = examGrade.score;
     const pct = score / examGrade.total;
-    const pass = pct >= PASS_SCORE;
+    const pass = pct >= passScore;
 
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--sp-canvas)] px-5">
@@ -163,7 +164,7 @@ export function ExamPage({ onNavigate, onExamComplete, activeCert }: Props) {
           <div className="mb-2 text-5xl font-semibold tracking-[-0.05em] text-[var(--sp-ink-strong)]">
             {Math.round(pct * 100)}%
           </div>
-          <p className="mb-8 text-sm text-[var(--sp-muted)]">{score} of {examGrade.total} correct · Target: 70%</p>
+          <p className="mb-8 text-sm text-[var(--sp-muted)]">{score} of {examGrade.total} correct · Target: {Math.round(passScore * 100)}%</p>
           <div className="flex gap-3">
             <button
               onClick={() => onNavigate('tutorial')}
@@ -185,7 +186,8 @@ export function ExamPage({ onNavigate, onExamComplete, activeCert }: Props) {
 
   // Render question text with <u> tag support and inline table/image
   const renderText = (text: string) => {
-    const parts = text.split(/(<u>.*?<\/u>)/g);
+    const cleaned = text.replace(/\s*See attachment\s*-?\s*/gi, ' ').trim();
+    const parts = cleaned.split(/(<u>.*?<\/u>)/g);
     return parts.map((part, i) => {
       const m = part.match(/^<u>(.*?)<\/u>$/);
       return m ? <u key={i} className="font-semibold">{m[1]}</u> : <span key={i}>{part}</span>;
@@ -195,46 +197,53 @@ export function ExamPage({ onNavigate, onExamComplete, activeCert }: Props) {
   const hasContextImg =
     qImages?.question_img &&
     /shown in the following table|shown in the (following )?(exhibit|figure|diagram)|configured as shown/i.test(question.question);
-  const splitMatch = (hasContextImg || question.table)
-    ? question.question.match(/^([\s\S]*?(?:following table|following exhibit|following figure|following diagram|configured as shown[^:.\n]*)[:.])([\s\S]*)$/i)
+  const questionTables = question.table
+    ? 'tables' in question.table ? question.table.tables : [question.table]
+    : [];
+  const shouldInlineImage = Boolean(qImages?.question_img) && (hasContextImg || question.certification === 'CTFL');
+  const hasInlineVisual = questionTables.length > 0 || shouldInlineImage;
+  const splitMatch = hasInlineVisual
+    ? question.question.match(/^([\s\S]*?(?:following[^:.\n]{0,80}(?:table|exhibit|figure|diagram)[^:.\n]{0,80}|(?:table|exhibit|figure|diagram)\s+below[^:.\n]{0,80}|configured as shown[^:.\n]*)[:.])([\s\S]*)$/i)
     : null;
 
-  const questionStem = splitMatch && (qImages?.question_img || question.table) ? (
+  const questionStem = hasInlineVisual ? (
     <>
       <p className="text-gray-900 font-medium leading-relaxed whitespace-pre-wrap mb-2">
-        {renderText(splitMatch[1])}
+        {renderText(splitMatch?.[1] ?? question.question)}
       </p>
-      {question.table ? (
-        <div className="my-2 overflow-x-auto">
-          <table className="mx-auto border border-gray-300 rounded-md text-sm">
+      {questionTables.map((table, tableIndex) => (
+        <div key={`${table.title ?? 'table'}-${tableIndex}`} className="my-4 overflow-x-auto">
+          {table.title && <p className="mb-2 text-xs font-semibold text-[var(--sp-ink-soft)]">{table.title}</p>}
+          <table className="min-w-full border-collapse text-xs sm:text-sm">
             <thead>
               <tr>
-                {question.table.headers.map((h, i) => (
-                  <th key={i} className="border-b border-gray-300 bg-gray-50 px-3 py-1.5 font-semibold text-left text-gray-700">{h}</th>
+                {table.headers.map((header, headerIndex) => (
+                  <th key={headerIndex} className="border border-[var(--sp-border)] bg-[var(--sp-primary-50)] px-3 py-2 font-semibold text-left text-[var(--sp-ink)]">{header}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {question.table.rows.map((row, i) => (
-                <tr key={i} className={i % 2 ? 'bg-gray-50/30' : ''}>
-                  {row.map((cell, j) => (
-                    <td key={j} className="border-t border-gray-200 px-3 py-1.5 text-gray-800">{cell}</td>
+              {table.rows.map((row, rowIndex) => (
+                <tr key={rowIndex}>
+                  {row.map((cell, cellIndex) => (
+                    <td key={cellIndex} className="border border-[var(--sp-border)] bg-white px-3 py-2 text-[var(--sp-ink-soft)]">{cell}</td>
                   ))}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      ) : (
+      ))}
+      {shouldInlineImage && qImages?.question_img && (
         <img
-          src={qImages!.question_img!}
-          alt="Question table"
-          className="max-w-md mx-auto block rounded-lg border border-gray-200 my-2"
+          src={qImages.question_img}
+          alt="State transition diagram for this question"
+          className="my-4 block w-full rounded-lg border border-[var(--sp-border)] bg-white"
         />
       )}
-      {splitMatch[2].trim() && (
+      {splitMatch?.[2]?.trim() && (
         <p className="text-gray-900 font-medium leading-relaxed whitespace-pre-wrap mb-3">
-          {renderText(splitMatch[2].replace(/^\s*\n?/, ''))}
+          {renderText(splitMatch[2])}
         </p>
       )}
     </>
@@ -269,7 +278,7 @@ export function ExamPage({ onNavigate, onExamComplete, activeCert }: Props) {
           </button>
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-[var(--sp-muted)] sm:inline">{totalAnswered} of {questions.length} answered</span>
-            <Timer durationSec={EXAM_DURATION_SEC} onExpire={() => { setExpired(true); void submitExam(); }} />
+            <Timer durationSec={examDurationSeconds} onExpire={() => { setExpired(true); void submitExam(); }} />
           </div>
         </div>
 

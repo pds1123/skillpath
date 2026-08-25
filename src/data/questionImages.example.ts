@@ -5,3 +5,4 @@
 // this repository; this file exists so the code type-checks and runs.
 
 export const QUESTION_IMAGES: Record<number, { question_img?: string; answer_img?: string; answer_inline_img?: string }> = {};
+export const CTFL_QUESTION_IMAGES: Record<number, { question_img?: string; answer_img?: string; answer_inline_img?: string }> = {};

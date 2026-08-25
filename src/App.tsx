@@ -16,7 +16,7 @@ import type { CertificationKey } from './data/questions';
 
 import { useAuth } from './auth/useAuth';
 
-type Page = 'home' | 'cloud' | 'tutorial' | 'browse' | 'modules' | 'practice' | 'certification' | 'exam' | 'examReview' | 'settings' | 'login' | 'admin' | 'adminQuestion' | 'adminModules' | 'adminModule';
+type Page = 'home' | 'cloud' | 'qa' | 'tutorial' | 'browse' | 'modules' | 'practice' | 'certification' | 'exam' | 'examReview' | 'settings' | 'login' | 'admin' | 'adminQuestion' | 'adminModules' | 'adminModule';
 type NavigateTo = (page: string, params?: Record<string, string>) => void;
 
 const API_KEY_STORAGE = 'skillpath_claude_api_key';
@@ -25,6 +25,7 @@ const PRACTICE_MODES = new Set<PracticeMode>(['quick', 'weak', 'mistakes']);
 const HomePage = lazy(() => import('./pages/HomePage').then(module => ({ default: module.HomePage })));
 const ExploreHomePage = lazy(() => import('./pages/ExploreHomePage').then(module => ({ default: module.ExploreHomePage })));
 const CloudPage = lazy(() => import('./pages/CloudPage').then(module => ({ default: module.CloudPage })));
+const QaTestingPage = lazy(() => import('./pages/QaTestingPage').then(module => ({ default: module.QaTestingPage })));
 const BrowsePage = lazy(() => import('./pages/BrowsePage').then(module => ({ default: module.BrowsePage })));
 const ModulesPage = lazy(() => import('./pages/ModulesPage').then(module => ({ default: module.ModulesPage })));
 const ExamPage = lazy(() => import('./pages/ExamPage').then(module => ({ default: module.ExamPage })));
@@ -57,6 +58,8 @@ function pagePath(page: string, params: Record<string, string> = {}) {
       return params.section ? `/?section=${encodeURIComponent(params.section)}` : '/';
     case 'cloud':
       return '/cloud';
+    case 'qa':
+      return '/qa-testing';
     case 'tutorial':
       return '/learning';
     case 'browse':
@@ -106,12 +109,14 @@ function ModulesRoute({
   onToggleLesson,
   onNavigate,
   activeCert,
+  apiKey,
 }: {
   progress: ProgressState;
   onAnswer: (questionId: number, correct: boolean, selected: string[]) => void;
   onToggleLesson: (lessonId: string) => void;
   onNavigate: NavigateTo;
   activeCert: CertificationKey;
+  apiKey: string;
 }) {
   const { moduleKey } = useParams();
 
@@ -123,6 +128,7 @@ function ModulesRoute({
       onNavigate={onNavigate}
       initialModule={moduleKey ? decodeURIComponent(moduleKey) : undefined}
       activeCert={activeCert}
+      apiKey={apiKey}
     />
   );
 }
@@ -202,6 +208,7 @@ export default function App() {
     const titleByPath: Array<[RegExp, string]> = [
       [/^\/$/, 'SkillPath'],
       [/^\/cloud$/, 'Cloud Learning | SkillPath'],
+      [/^\/qa-testing$/, 'QA & Testing | SkillPath'],
       [/^\/learning\/modules/, 'Learning Modules | SkillPath'],
       [/^\/learning$/, 'My Learning | SkillPath'],
       [/^\/practice\//, 'Practice | SkillPath'],
@@ -228,6 +235,7 @@ export default function App() {
       <Routes>
       <Route path="/" element={<ExploreHomePage onNavigate={navigate} />} />
       <Route path="/cloud" element={<CloudPage onNavigate={navigate} setCertification={cert.setCertification} />} />
+      <Route path="/qa-testing" element={<QaTestingPage onNavigate={navigate} setCertification={cert.setCertification} />} />
       <Route path="/learning" element={<HomePage progress={state} onNavigate={navigate} activeCert={cert.active} />} />
       <Route
         path="/learning/modules/:moduleKey?"
@@ -238,6 +246,7 @@ export default function App() {
             onToggleLesson={toggleLesson}
             onNavigate={navigate}
             activeCert={cert.active}
+            apiKey={apiKey}
           />
         )}
       />

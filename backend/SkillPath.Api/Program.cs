@@ -82,6 +82,7 @@ await using (var scope = app.Services.CreateAsyncScope())
     }
     await LegacyFileImporter.ImportAsync(db, app.Environment, logger);
     await QuestionBankSeeder.SeedAsync(db, app.Environment, logger);
+    await IstqbCtflSeeder.SeedAsync(db, app.Environment, logger);
 }
 
 app.UseCors();

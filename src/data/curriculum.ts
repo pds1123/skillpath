@@ -25,6 +25,8 @@ export interface LearningModule {
 export interface ModuleLesson {
   key: string;
   title: string;
+  summary?: string;
+  estimatedMinutes?: number;
   content: string;
   domain: string;
 }
@@ -35,8 +37,10 @@ export function lessonsForModule(module: LearningModule): ModuleLesson[] {
   return studyContentForCert(module.certificationAlignment)
     .filter(topic => module.domainMap.includes(topic.domain))
     .flatMap(topic => topic.sections.map((section, index) => ({
-      key: `${module.key}:${topic.domain}:${index}`,
+      key: `${module.key}:${section.slug ?? `${topic.domain}:${index}`}`,
       title: section.title,
+      summary: section.summary,
+      estimatedMinutes: section.estimatedMinutes,
       content: section.content,
       domain: topic.domain,
     })));
@@ -230,7 +234,77 @@ export const AWS_MODULES: LearningModule[] = [
   },
 ];
 
-export const ALL_MODULES: LearningModule[] = [...AZURE_MODULES, ...AWS_MODULES];
+// ─── Software Testing Foundations ───────────────────────────────────────────
+export const CTFL_MODULES: LearningModule[] = [
+  {
+    key: 'ctfl-fundamentals',
+    skillKey: 'istqb-ctfl',
+    name: 'Fundamentals of Testing',
+    description: 'Testing objectives, principles, quality, defects, and the psychology of testing',
+    order: 1,
+    domainMap: ['Fundamentals of Testing'],
+    lessonCount: 4,
+    practiceCount: 1,
+    certificationAlignment: 'CTFL',
+  },
+  {
+    key: 'ctfl-sdlc',
+    skillKey: 'istqb-ctfl',
+    name: 'Testing Throughout the SDLC',
+    description: 'Development approaches, test levels, test types, and maintenance testing',
+    order: 2,
+    domainMap: ['Testing Throughout the Software Development Lifecycle'],
+    lessonCount: 4,
+    practiceCount: 1,
+    certificationAlignment: 'CTFL',
+  },
+  {
+    key: 'ctfl-static-testing',
+    skillKey: 'istqb-ctfl',
+    name: 'Static Testing',
+    description: 'Reviews, static analysis, early feedback, roles, and review techniques',
+    order: 3,
+    domainMap: ['Static Testing'],
+    lessonCount: 4,
+    practiceCount: 1,
+    certificationAlignment: 'CTFL',
+  },
+  {
+    key: 'ctfl-analysis-design',
+    skillKey: 'istqb-ctfl',
+    name: 'Test Analysis and Design',
+    description: 'Black-box, white-box, and experience-based test techniques',
+    order: 4,
+    domainMap: ['Test Analysis and Design'],
+    lessonCount: 4,
+    practiceCount: 1,
+    certificationAlignment: 'CTFL',
+  },
+  {
+    key: 'ctfl-management',
+    skillKey: 'istqb-ctfl',
+    name: 'Managing Test Activities',
+    description: 'Planning, estimation, risk, monitoring, configuration, and defect management',
+    order: 5,
+    domainMap: ['Managing the Test Activities'],
+    lessonCount: 4,
+    practiceCount: 1,
+    certificationAlignment: 'CTFL',
+  },
+  {
+    key: 'ctfl-tools',
+    skillKey: 'istqb-ctfl',
+    name: 'Test Tools',
+    description: 'Tool support, automation benefits and risks, selection, and rollout',
+    order: 6,
+    domainMap: ['Test Tools'],
+    lessonCount: 4,
+    practiceCount: 1,
+    certificationAlignment: 'CTFL',
+  },
+];
+
+export const ALL_MODULES: LearningModule[] = [...AZURE_MODULES, ...AWS_MODULES, ...CTFL_MODULES];
 
 export function modulesForCert(cert: CertificationKey): LearningModule[] {
   return ALL_MODULES.filter(m => m.certificationAlignment === cert).sort((a, b) => a.order - b.order);

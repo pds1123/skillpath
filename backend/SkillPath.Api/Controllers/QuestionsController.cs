@@ -36,7 +36,8 @@ public sealed class QuestionsController(SkillPathDbContext db) : ControllerBase
 
         var total = await query.CountAsync();
         var rows = await query
-            .OrderBy(item => item.Question.Id)
+            .OrderBy(item => item.Question.LegacyId)
+            .ThenBy(item => item.Question.Id)
             .Skip(offset)
             .Take(limit)
             .ToListAsync();

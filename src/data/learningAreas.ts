@@ -17,6 +17,14 @@ export const LEARNING_AREAS: LearningArea[] = [
     destination: 'cloud',
   },
   {
+    key: 'qa',
+    name: 'QA & Testing',
+    description: 'Understand how teams reason about software quality, risk, coverage, defects, and reliable delivery.',
+    concepts: ['Quality principles', 'Testing levels', 'Test design', 'Defect analysis', 'Automation strategy'],
+    status: 'available',
+    destination: 'qa',
+  },
+  {
     key: 'software',
     name: 'Software Foundations',
     description: 'Learn the ideas behind programs and modern applications without depending on one programming language or framework.',
@@ -28,13 +36,6 @@ export const LEARNING_AREAS: LearningArea[] = [
     name: 'Data Foundations',
     description: 'Learn how data is structured, related, queried, measured, and governed before choosing an analysis tool.',
     concepts: ['Data models', 'Relationships', 'Query logic', 'Data quality', 'Metrics'],
-    status: 'planned',
-  },
-  {
-    key: 'qa',
-    name: 'QA & Testing',
-    description: 'Understand how teams reason about software quality, risk, coverage, defects, and reliable delivery.',
-    concepts: ['Quality principles', 'Testing levels', 'Test design', 'Defect analysis', 'Automation strategy'],
     status: 'planned',
   },
 ];

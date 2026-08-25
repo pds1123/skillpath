@@ -3,7 +3,7 @@ import type React from 'react';
 import { questionsForCert, domainsForCert } from '../data/questions';
 import type { Question, CertificationKey } from '../data/questions';
 import type { ProgressState } from '../hooks/useProgress';
-import { QUESTION_IMAGES } from '../data/questionImages';
+import { CTFL_QUESTION_IMAGES, QUESTION_IMAGES } from '../data/questionImages';
 import { INTERACTIVE_DATA } from '../data/interactiveData';
 import type { InteractiveData } from '../data/interactiveData';
 import { InteractiveExam } from '../components/InteractiveExam';
@@ -160,7 +160,9 @@ function QuestionCard({
     : [];
   const isInteractiveHotspot = hotspotBoxes.length > 0 && hotspotBoxes.every(b => b.answer === 'Yes' || b.answer === 'No');
 
-  const qImages = QUESTION_IMAGES[sourceId];
+  const qImages = question.certification === 'CTFL'
+    ? CTFL_QUESTION_IMAGES[sourceId]
+    : QUESTION_IMAGES[sourceId];
   const answerText = answer?.explanation ?? question.answer_text;
   const correctAnswers = answer?.correctAnswer ?? [];
   const rawCleaned = answerText
@@ -371,7 +373,7 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
     return (
       <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-[var(--sp-border)]">
         <div className="flex items-center gap-2 border-b border-[var(--sp-border)] bg-[var(--sp-primary-50)] px-5 py-3">
-          <span className="font-mono text-xs text-[var(--sp-muted)]">#{question.id}</span>
+          <span className="font-mono text-xs text-[var(--sp-muted)]">#{index + 1}</span>
           <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-[var(--sp-primary-800)] ring-1 ring-[var(--sp-border)]">
             {question.domain}
           </span>
@@ -391,7 +393,7 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
     <article className="overflow-hidden rounded-2xl bg-white ring-1 ring-[var(--sp-border)]">
       {/* Card header */}
       <div className="flex items-center gap-2 border-b border-[var(--sp-border)] bg-[var(--sp-primary-50)] px-5 py-3">
-        <span className="font-mono text-xs text-[var(--sp-muted)]">#{question.id}</span>
+        <span className="font-mono text-xs text-[var(--sp-muted)]">#{index + 1}</span>
         <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-[var(--sp-primary-800)] ring-1 ring-[var(--sp-border)]">
           {question.domain}
         </span>
@@ -412,58 +414,66 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
       {/* Question body */}
       <div className="p-5 sm:p-6">
         {(() => {
+          const questionTables = question.table
+            ? 'tables' in question.table ? question.table.tables : [question.table]
+            : [];
           const hasContextImg =
             qImages?.question_img && (!interactive || interactive.kind !== 'self_grade') &&
             /shown in the following table|shown in the (following )?(exhibit|figure|diagram)|configured as shown/i.test(question.question);
-          const hasInlineTable = !!question.table;
-          // Split the question into [before table:] + [after table:] so image or table renders inline
-          const splitMatch = (hasContextImg || hasInlineTable)
-            ? question.question.match(/^([\s\S]*?(?:following table|following exhibit|following figure|following diagram|configured as shown[^:.\n]*)[:.])([\s\S]*)$/i)
+          const shouldInlineImage = Boolean(qImages?.question_img) && (hasContextImg || question.certification === 'CTFL');
+          const hasInlineVisual = questionTables.length > 0 || shouldInlineImage;
+          const splitMatch = hasInlineVisual
+            ? question.question.match(/^([\s\S]*?(?:following[^:.\n]{0,80}(?:table|exhibit|figure|diagram)[^:.\n]{0,80}|(?:table|exhibit|figure|diagram)\s+below[^:.\n]{0,80}|configured as shown[^:.\n]*)[:.])([\s\S]*)$/i)
             : null;
           const renderText = (text: string) => {
-            const parts = text.split(/(<u>.*?<\/u>)/g);
+            const cleaned = text.replace(/\s*See attachment\s*-?\s*/gi, ' ').trim();
+            const parts = cleaned.split(/(<u>.*?<\/u>)/g);
             return parts.map((part, i) => {
               const m = part.match(/^<u>(.*?)<\/u>$/);
               return m ? <u key={i} className="font-semibold">{m[1]}</u> : <span key={i}>{part}</span>;
             });
           };
-          if (splitMatch && (qImages?.question_img || question.table)) {
+          if (hasInlineVisual) {
+            const leadingText = splitMatch?.[1] ?? question.question;
+            const trailingText = splitMatch?.[2]?.trim() ?? '';
             return (
               <>
                 <p className="text-gray-900 font-medium leading-relaxed text-sm mb-2 whitespace-pre-wrap">
-                  {index + 1}. {renderText(splitMatch[1])}
+                  {index + 1}. {renderText(leadingText)}
                 </p>
-                {question.table ? (
-                  <div className="my-2 overflow-x-auto">
-                    <table className="mx-auto border border-gray-300 rounded-md text-sm">
+                {questionTables.map((table, tableIndex) => (
+                  <div key={`${table.title ?? 'table'}-${tableIndex}`} className="my-4 overflow-x-auto">
+                    {table.title && <p className="mb-2 text-xs font-semibold text-[var(--sp-ink-soft)]">{table.title}</p>}
+                    <table className="min-w-full border-collapse text-xs sm:text-sm">
                       <thead>
                         <tr>
-                          {question.table.headers.map((h, i) => (
-                            <th key={i} className="border-b border-gray-300 bg-gray-50 px-3 py-1.5 font-semibold text-left text-gray-700">{h}</th>
+                          {table.headers.map((header, headerIndex) => (
+                            <th key={headerIndex} className="border border-[var(--sp-border)] bg-[var(--sp-primary-50)] px-3 py-2 font-semibold text-left text-[var(--sp-ink)]">{header}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
-                        {question.table.rows.map((row, i) => (
-                          <tr key={i} className={i % 2 ? 'bg-gray-50/30' : ''}>
-                            {row.map((cell, j) => (
-                              <td key={j} className="border-t border-gray-200 px-3 py-1.5 text-gray-800">{cell}</td>
+                        {table.rows.map((row, rowIndex) => (
+                          <tr key={rowIndex}>
+                            {row.map((cell, cellIndex) => (
+                              <td key={cellIndex} className="border border-[var(--sp-border)] bg-white px-3 py-2 text-[var(--sp-ink-soft)]">{cell}</td>
                             ))}
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                ) : (
+                ))}
+                {shouldInlineImage && qImages?.question_img && (
                   <img
-                    src={qImages!.question_img}
-                    alt="Question table"
-                    className="max-w-md mx-auto block rounded-lg border border-gray-200 my-2"
+                    src={qImages.question_img}
+                    alt="State transition diagram for this question"
+                    className="my-4 block w-full rounded-lg border border-[var(--sp-border)] bg-white"
                   />
                 )}
-                {splitMatch[2].trim() && (
+                {trailingText && (
                   <p className="text-gray-900 font-medium leading-relaxed text-sm mb-3 whitespace-pre-wrap">
-                    {renderText(splitMatch[2].replace(/^\s*\n?/, ''))}
+                    {renderText(trailingText)}
                   </p>
                 )}
               </>
@@ -895,7 +905,7 @@ function QuestionNav({ currentId, visitedIds, onJump, questions }: {
 }) {
   return (
     <div className="flex max-h-56 flex-wrap gap-1.5 overflow-y-auto py-2 pr-1">
-      {questions.map(q => {
+      {questions.map((q, index) => {
         const isCurrent = q.id === currentId;
         const isVisited = visitedIds.has(q.id);
         const color = isCurrent
@@ -907,9 +917,10 @@ function QuestionNav({ currentId, visitedIds, onJump, questions }: {
           <button
             key={q.id}
             onClick={() => onJump(q.id)}
+            aria-label={`Question ${index + 1}`}
             className={`h-8 min-w-8 rounded-lg px-1.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sp-primary-600)] ${color}`}
           >
-            {q.id}
+            {index + 1}
           </button>
         );
       })}
@@ -999,7 +1010,7 @@ export function BrowsePage({ progress, onNavigate, apiKey, activeCert }: Props) 
               My Learning
             </button>
             <h1 className="text-3xl font-semibold tracking-[-0.035em] text-[var(--sp-ink-strong)] sm:text-4xl">Question library</h1>
-            <p className="mt-2 text-sm leading-6 text-[var(--sp-muted)]">Browse questions by topic, revisit difficult concepts and check each explanation.</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--sp-muted)]">Browse questions by topic, revisit difficult concepts, and check each answer.</p>
           </div>
           <button type="button" onClick={() => setShowNav(value => !value)} aria-expanded={showNav} className="self-start rounded-xl bg-[var(--sp-surface)] px-4 py-2.5 text-sm font-semibold text-[var(--sp-primary-800)] ring-1 ring-[var(--sp-border)] transition hover:bg-[var(--sp-primary-50)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sp-primary-600)]">
             {showNav ? 'Close navigator' : `Open navigator · ${idx + 1} of ${total}`}

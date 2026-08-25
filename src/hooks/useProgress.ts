@@ -26,7 +26,7 @@ export interface ExamAttempt {
   answers?: Record<number, string[] | 'correct' | 'incorrect'>;
   correctAnswers?: Record<number, string[]>;
   // Which cert this attempt belongs to (added when multi-cert was introduced)
-  certification?: 'AZ-900' | 'CLF-C02';
+  certification?: 'AZ-900' | 'CLF-C02' | 'CTFL';
 }
 
 const STORAGE_KEY = 'az900_progress';

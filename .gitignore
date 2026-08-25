@@ -38,6 +38,7 @@ src/data/questions_aws.ts
 src/data/interactiveData.ts
 src/data/questionImages.ts
 public/qimages/
+content/ctfl-visual-questions.json
 
 # PDFs & extraction artefacts (may contain full question data — never commit)
 *.pdf

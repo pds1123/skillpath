@@ -1,7 +1,11 @@
 import type { CertificationKey } from './questions';
+import ctflCurriculum from '../../content/ctfl-lessons.json';
 
 export interface StudySection {
+  slug?: string;
   title: string;
+  summary?: string;
+  estimatedMinutes?: number;
   content: string;
 }
 
@@ -16,7 +20,7 @@ export function studyContentForCert(cert: CertificationKey): DomainStudy[] {
   return STUDY_CONTENT.filter(d => d.certification === cert);
 }
 
-export const STUDY_CONTENT: DomainStudy[] = [
+const PLATFORM_STUDY_CONTENT: DomainStudy[] = [
   {
     certification: 'AZ-900',
     domain: 'Cloud Service Models',
@@ -798,3 +802,20 @@ Infrastructure Event Management (IEM) — engineered support during major events
     ],
   },
 ];
+
+const CTFL_STUDY_CONTENT: DomainStudy[] = ctflCurriculum.modules.map(module => ({
+  certification: 'CTFL' as const,
+  domain: module.domain,
+  summary: module.summary,
+  sections: module.lessons
+    .toSorted((left, right) => left.sortOrder - right.sortOrder)
+    .map(lesson => ({
+      slug: lesson.slug,
+      title: lesson.title,
+      summary: lesson.summary,
+      estimatedMinutes: lesson.estimatedMinutes,
+      content: lesson.content,
+    })),
+}));
+
+export const STUDY_CONTENT: DomainStudy[] = [...PLATFORM_STUDY_CONTENT, ...CTFL_STUDY_CONTENT];

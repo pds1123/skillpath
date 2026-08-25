@@ -4,12 +4,12 @@ import type { CertificationKey } from '../data/questions';
 
 interface Props {
   onNavigate: (page: string, params?: Record<string, string>) => void;
-  setCertification: (cert: CertificationKey) => void;
+  setCertification: (certification: CertificationKey) => void;
 }
 
-export function CloudPage({ onNavigate, setCertification }: Props) {
-  function openTutorial(certification: CertificationKey) {
-    setCertification(certification);
+export function QaTestingPage({ onNavigate, setCertification }: Props) {
+  function openTutorial() {
+    setCertification('CTFL');
     onNavigate('tutorial');
   }
 
@@ -21,36 +21,26 @@ export function CloudPage({ onNavigate, setCertification }: Props) {
         <nav className="flex items-center gap-2 text-xs text-[var(--sp-muted)]" aria-label="Breadcrumb">
           <button type="button" onClick={() => onNavigate('home')} className="transition hover:text-[var(--sp-primary-700)]">Home</button>
           <span aria-hidden="true">/</span>
-          <span className="font-medium text-[var(--sp-ink-soft)]">Cloud</span>
+          <span className="font-medium text-[var(--sp-ink-soft)]">QA &amp; Testing</span>
         </nav>
 
         <header className="mt-8 max-w-3xl">
-          <h1 className="text-3xl font-semibold tracking-[-0.035em] text-[var(--sp-ink-strong)] sm:text-4xl">Cloud platforms</h1>
+          <h1 className="text-3xl font-semibold tracking-[-0.035em] text-[var(--sp-ink-strong)] sm:text-4xl">QA &amp; Testing</h1>
           <p className="mt-3 text-sm leading-6 text-[var(--sp-muted)]">
-            Choose either platform. They are parallel beginner tutorials.
+            Start with one structured beginner tutorial covering the foundations of software testing.
           </p>
         </header>
 
-        <section className="mt-10" aria-label="Available cloud tutorials">
+        <section className="mt-10" aria-label="Available QA and testing tutorials">
           <div className="grid gap-4 md:grid-cols-2">
             <LearningEntryCard
               number="01"
               level="Beginner"
-              title="Microsoft Azure"
-              description="Learn core Azure concepts, services, identity, networking, storage, and governance."
+              title="ISTQB CTFL"
+              description="Learn testing fundamentals, test design, static testing, risk, test management, and test tools."
               note="Certification prep available"
               action="Open tutorial"
-              onClick={() => openTutorial('AZ-900')}
-            />
-
-            <LearningEntryCard
-              number="02"
-              level="Beginner"
-              title="Amazon Web Services"
-              description="Learn core AWS concepts, infrastructure, security, compute, storage, and pricing."
-              note="Certification prep available"
-              action="Open tutorial"
-              onClick={() => openTutorial('CLF-C02')}
+              onClick={openTutorial}
             />
           </div>
         </section>
