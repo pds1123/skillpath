@@ -107,6 +107,7 @@ function ModulesRoute({
   progress,
   onAnswer,
   onToggleLesson,
+  onKnowledgeCheckPositionChange,
   onNavigate,
   activeCert,
   apiKey,
@@ -114,6 +115,7 @@ function ModulesRoute({
   progress: ProgressState;
   onAnswer: (questionId: number, correct: boolean, selected: string[]) => void;
   onToggleLesson: (lessonId: string) => void;
+  onKnowledgeCheckPositionChange: (moduleKey: string, questionIndex: number | null) => void;
   onNavigate: NavigateTo;
   activeCert: CertificationKey;
   apiKey: string;
@@ -125,6 +127,7 @@ function ModulesRoute({
       progress={progress}
       onAnswer={onAnswer}
       onToggleLesson={onToggleLesson}
+      onKnowledgeCheckPositionChange={onKnowledgeCheckPositionChange}
       onNavigate={onNavigate}
       initialModule={moduleKey ? decodeURIComponent(moduleKey) : undefined}
       activeCert={activeCert}
@@ -188,7 +191,14 @@ export default function App() {
   const [apiKey, setApiKey] = useState(() =>
     localStorage.getItem(API_KEY_STORAGE) ?? localStorage.getItem('az900_claude_api_key') ?? ''
   );
-  const { state, recordAnswer, recordExam, resetProgress, toggleLesson } = useProgress();
+  const {
+    state,
+    recordAnswer,
+    recordExam,
+    resetProgress,
+    toggleLesson,
+    setKnowledgeCheckPosition,
+  } = useProgress();
   const cert = useCertification();
 
   const navigate = useCallback<NavigateTo>((page, params) => {
@@ -244,6 +254,7 @@ export default function App() {
             progress={state}
             onAnswer={recordAnswer}
             onToggleLesson={toggleLesson}
+            onKnowledgeCheckPositionChange={setKnowledgeCheckPosition}
             onNavigate={navigate}
             activeCert={cert.active}
             apiKey={apiKey}

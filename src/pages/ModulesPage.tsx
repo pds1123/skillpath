@@ -15,6 +15,7 @@ interface Props {
   progress: ProgressState;
   onAnswer: (questionId: number, correct: boolean, selected: string[]) => void;
   onToggleLesson: (lessonKey: string) => void;
+  onKnowledgeCheckPositionChange: (moduleKey: string, questionIndex: number | null) => void;
   onNavigate: (page: string, params?: Record<string, string>) => void;
   initialModule?: string;
   activeCert: CertificationKey;
@@ -79,28 +80,34 @@ function ModuleList({ modules, progress, questions, onSelect }: {
 
 type ModuleTab = 'learn' | 'practice';
 
-function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onBack, activeCert, apiKey }: {
+function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onKnowledgeCheckPositionChange, onBack, activeCert, apiKey }: {
   module: LearningModule;
   progress: ProgressState;
   onAnswer: (id: number, correct: boolean, selected: string[]) => void;
   onToggleLesson: (lessonKey: string) => void;
+  onKnowledgeCheckPositionChange: (moduleKey: string, questionIndex: number | null) => void;
   onBack: () => void;
   activeCert: CertificationKey;
   apiKey: string;
 }) {
-  const [tab, setTab] = useState<ModuleTab>(() => lessonsForModule(module).length > 0 ? 'learn' : 'practice');
-  const [practiceIndex, setPracticeIndex] = useState(0);
+  const lessons = useMemo(() => lessonsForModule(module), [module]);
+  const practiceQuestions = useMemo(
+    () => quizQuestionsForCert(activeCert).filter(question => module.domainMap.includes(question.domain)),
+    [activeCert, module],
+  );
+  const hasSavedKnowledgeCheck = Object.prototype.hasOwnProperty.call(progress.knowledgeCheckPositions, module.key);
+  const savedPracticeIndex = Math.min(
+    Math.max(progress.knowledgeCheckPositions[module.key] ?? 0, 0),
+    Math.max(practiceQuestions.length - 1, 0),
+  );
+  const [tab, setTab] = useState<ModuleTab>(() => hasSavedKnowledgeCheck || lessons.length === 0 ? 'practice' : 'learn');
+  const [practiceIndex, setPracticeIndex] = useState(savedPracticeIndex);
   const [selected, setSelected] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const [grade, setGrade] = useState<AnswerGrade | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [openLesson, setOpenLesson] = useState(0);
-  const lessons = useMemo(() => lessonsForModule(module), [module]);
-  const practiceQuestions = useMemo(
-    () => quizQuestionsForCert(activeCert).filter(question => module.domainMap.includes(question.domain)),
-    [activeCert, module],
-  );
   const completedCount = lessons.filter(lesson => progress.completedLessons[lesson.key]).length;
   const lessonPercentage = Math.round((completedCount / Math.max(lessons.length, 1)) * 100);
   const question = practiceQuestions[practiceIndex];
@@ -115,7 +122,23 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onBack, acti
   }
 
   function goQuestion(index: number) {
-    setPracticeIndex(index);
+    const nextIndex = Math.min(Math.max(index, 0), Math.max(practiceQuestions.length - 1, 0));
+    setPracticeIndex(nextIndex);
+    onKnowledgeCheckPositionChange(module.key, nextIndex);
+    resetQuestion();
+  }
+
+  function selectTab(nextTab: ModuleTab) {
+    setTab(nextTab);
+    if (nextTab === 'practice' && practiceQuestions.length > 0) {
+      onKnowledgeCheckPositionChange(module.key, practiceIndex);
+    }
+  }
+
+  function finishKnowledgeCheck() {
+    onKnowledgeCheckPositionChange(module.key, null);
+    setTab('learn');
+    setPracticeIndex(0);
     resetQuestion();
   }
 
@@ -181,7 +204,7 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onBack, acti
             role="tab"
             aria-selected={tab === item}
             key={item}
-            onClick={() => setTab(item)}
+            onClick={() => selectTab(item)}
             className={`rounded-lg py-2.5 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-[var(--sp-primary-600)] ${tab === item ? 'bg-white text-[var(--sp-ink)] shadow-sm' : 'text-[var(--sp-muted)] hover:text-[var(--sp-ink-soft)]'}`}
           >
             {item === 'learn' ? 'Lessons' : 'Knowledge check'}
@@ -256,7 +279,7 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onBack, acti
               </div>
               <button
                 type="button"
-                onClick={() => setTab('practice')}
+                onClick={() => selectTab('practice')}
                 className="mt-5 w-full rounded-xl bg-[var(--sp-primary-900)] py-3 text-sm font-semibold text-white transition hover:bg-[var(--sp-primary-800)] active:translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sp-primary-600)]"
               >
                 Take the knowledge check →
@@ -348,7 +371,7 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onBack, acti
                       type="button"
                       onClick={() => {
                         if (practiceIndex < practiceQuestions.length - 1) goQuestion(practiceIndex + 1);
-                        else { setTab('learn'); goQuestion(0); }
+                        else finishKnowledgeCheck();
                       }}
                       className="flex-1 rounded-xl bg-[var(--sp-primary-900)] py-3 text-sm font-semibold text-white transition hover:bg-[var(--sp-primary-800)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sp-primary-600)]"
                     >
@@ -365,7 +388,7 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onBack, acti
   );
 }
 
-export function ModulesPage({ progress, onAnswer, onToggleLesson, onNavigate, initialModule, activeCert, apiKey }: Props) {
+export function ModulesPage({ progress, onAnswer, onToggleLesson, onKnowledgeCheckPositionChange, onNavigate, initialModule, activeCert, apiKey }: Props) {
   const modules = useMemo(() => modulesForCert(activeCert), [activeCert]);
   const questions = useMemo(() => questionsForCert(activeCert), [activeCert]);
   const initialSelection = useMemo(
@@ -401,10 +424,12 @@ export function ModulesPage({ progress, onAnswer, onToggleLesson, onNavigate, in
           </>
         ) : (
           <ModuleDetail
+            key={selectedModule.key}
             module={selectedModule}
             progress={progress}
             onAnswer={onAnswer}
             onToggleLesson={onToggleLesson}
+            onKnowledgeCheckPositionChange={onKnowledgeCheckPositionChange}
             onBack={() => onNavigate('modules')}
             activeCert={activeCert}
             apiKey={apiKey}

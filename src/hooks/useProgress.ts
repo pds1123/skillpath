@@ -12,6 +12,7 @@ export interface ProgressState {
   results: Record<number, QuestionResult[]>; // questionId -> attempts
   examHistory: ExamAttempt[];
   completedLessons: Record<string, number>; // lesson key -> completion timestamp
+  knowledgeCheckPositions: Record<string, number>; // module key -> current question index
 }
 
 export interface ExamAttempt {
@@ -40,12 +41,13 @@ function load(): ProgressState {
         results: parsed.results ?? {},
         examHistory: parsed.examHistory ?? [],
         completedLessons: parsed.completedLessons ?? {},
+        knowledgeCheckPositions: parsed.knowledgeCheckPositions ?? {},
       };
     }
   } catch {
     localStorage.removeItem(STORAGE_KEY);
   }
-  return { results: {}, examHistory: [], completedLessons: {} };
+  return { results: {}, examHistory: [], completedLessons: {}, knowledgeCheckPositions: {} };
 }
 
 function save(state: ProgressState) {
@@ -77,6 +79,7 @@ export function useProgress() {
             results: serverProgress.results ?? {},
             examHistory: serverProgress.examHistory ?? [],
             completedLessons: serverProgress.completedLessons ?? {},
+            knowledgeCheckPositions: serverProgress.knowledgeCheckPositions ?? {},
           });
         } else {
           await saveServerProgress(stateRef.current);
@@ -122,7 +125,7 @@ export function useProgress() {
   }, []);
 
   const resetProgress = useCallback(() => {
-    setState({ results: {}, examHistory: [], completedLessons: {} });
+    setState({ results: {}, examHistory: [], completedLessons: {}, knowledgeCheckPositions: {} });
   }, []);
 
   const toggleLesson = useCallback((lessonKey: string) => {
@@ -131,6 +134,15 @@ export function useProgress() {
       if (completedLessons[lessonKey]) delete completedLessons[lessonKey];
       else completedLessons[lessonKey] = Date.now();
       return { ...prev, completedLessons };
+    });
+  }, []);
+
+  const setKnowledgeCheckPosition = useCallback((moduleKey: string, questionIndex: number | null) => {
+    setState(prev => {
+      const knowledgeCheckPositions = { ...prev.knowledgeCheckPositions };
+      if (questionIndex === null) delete knowledgeCheckPositions[moduleKey];
+      else knowledgeCheckPositions[moduleKey] = questionIndex;
+      return { ...prev, knowledgeCheckPositions };
     });
   }, []);
 
@@ -148,5 +160,14 @@ export function useProgress() {
     return { attempted, correct, total: allAttempts.length };
   }, [state.results]);
 
-  return { state, recordAnswer, recordExam, resetProgress, toggleLesson, getQuestionStats, getOverallStats };
+  return {
+    state,
+    recordAnswer,
+    recordExam,
+    resetProgress,
+    toggleLesson,
+    setKnowledgeCheckPosition,
+    getQuestionStats,
+    getOverallStats,
+  };
 }
