@@ -158,6 +158,7 @@ public sealed class QuestionsController(SkillPathDbContext db) : ControllerBase
 
     private async Task<List<QuestionResponse>> MapQuestions(IReadOnlyList<(Question Question, string Certification, string Domain)> rows)
     {
+        var includeSourceReferences = User.IsInRole("admin");
         var ids = rows.Select(row => row.Question.Id).ToList();
         var options = await db.QuestionOptions.AsNoTracking()
             .Where(option => ids.Contains(option.QuestionId))
@@ -178,9 +179,15 @@ public sealed class QuestionsController(SkillPathDbContext db) : ControllerBase
                 row.Domain,
                 row.Question.Mode,
                 questionOptions.Count(option => option.IsCorrect) > 1,
+                includeSourceReferences ? ParseSourceReferences(row.Question.SourceReference) : null,
                 ParseOptionalJson(row.Question.TableData));
         }).ToList();
     }
+
+    private static IReadOnlyList<string> ParseSourceReferences(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+            ? []
+            : value.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     private static JsonElement? ParseOptionalJson(string? json)
     {

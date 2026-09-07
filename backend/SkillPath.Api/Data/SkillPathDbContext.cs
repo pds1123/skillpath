@@ -139,6 +139,8 @@ public sealed class SkillPathDbContext(DbContextOptions<SkillPathDbContext> opti
         });
         questions.HasKey(x => x.Id);
         questions.Property(x => x.SourceKey).HasMaxLength(100);
+        questions.Property(x => x.SourceAttribution).HasMaxLength(30);
+        questions.Property(x => x.SourceReference).HasMaxLength(100);
         questions.Property(x => x.QuestionType).HasMaxLength(30);
         questions.Property(x => x.ContentType).HasMaxLength(30);
         questions.Property(x => x.Mode).HasMaxLength(20);

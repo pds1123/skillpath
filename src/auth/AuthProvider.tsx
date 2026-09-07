@@ -6,6 +6,7 @@ import {
   registerAccount,
   type AuthUser,
 } from '../services/api';
+import { loadQuestionBank } from '../data/questions';
 import { AuthContext, type AuthContextValue } from './auth-context';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -33,13 +34,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     isLoading,
     login: async (email, password) => {
-      setUser(await loginAccount({ email, password }));
+      const currentUser = await loginAccount({ email, password });
+      await loadQuestionBank(true);
+      setUser(currentUser);
     },
     register: async (email, password, displayName) => {
-      setUser(await registerAccount({ email, password, displayName }));
+      const currentUser = await registerAccount({ email, password, displayName });
+      await loadQuestionBank(true);
+      setUser(currentUser);
     },
     logout: async () => {
       await logoutAccount();
+      await loadQuestionBank(true);
       setUser(null);
     },
   }), [user, isLoading]);

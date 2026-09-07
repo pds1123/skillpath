@@ -181,11 +181,15 @@ function parseQuestion(chunk, id, affectedByImage) {
     question: {
       legacyId: id,
       sourceKey: `CTFL:${id}`,
+      sourceAttribution: 'ctfl_278',
+      sourceReference: `278.${id}`,
       prompt: resolvedPrompt,
       domain,
       correctAnswer: [...correctAnswer],
       options,
       tableData: visual?.tables ? { tables: visual.tables } : undefined,
+      explanation: null,
+      status: 'published',
     },
   };
 }

@@ -89,6 +89,7 @@ export function InteractiveExam({
   const [picks, setPicks] = useState<Record<number, string>>({});
   const initialPool = data.kind === 'match' ? data.pool : [];
   const [pool, setPool] = useState<string[]>(initialPool);
+  const [selectionAnswers, setSelectionAnswers] = useState<string[]>([]);
   const [dragOverSlot, setDragOverSlot] = useState<number | null>(null);
   const [dragOverPool, setDragOverPool] = useState(false);
 
@@ -164,6 +165,8 @@ export function InteractiveExam({
     const reusable =
       data.pool.length < data.prompts.length ||
       /more\s+than\s+once|may\s+be\s+used\s+(more\s+than\s+once|once\s+or\s+more)/i.test(questionText || '');
+    const allPromptsShareLabel =
+      data.prompts.length > 1 && data.prompts.every(prompt => prompt.text === data.prompts[0].text);
     function onDragStartItem(e: React.DragEvent, item: string, from: 'pool' | number) {
       e.dataTransfer.setData('text/plain', JSON.stringify({ item, from }));
       e.dataTransfer.effectAllowed = 'move';
@@ -205,10 +208,136 @@ export function InteractiveExam({
       }
     }
 
+    if (allPromptsShareLabel) {
+      const expectedAnswers = data.prompts.map(prompt => prompt.correct);
+      const correctSelection =
+        selectionAnswers.length === expectedAnswers.length &&
+        [...selectionAnswers].sort().every((answer, index) => answer === [...expectedAnswers].sort()[index]);
+
+      function onDragStartSelection(e: React.DragEvent, item: string, from: 'pool' | 'answer') {
+        e.dataTransfer.setData('text/plain', JSON.stringify({ item, from }));
+        e.dataTransfer.effectAllowed = 'move';
+      }
+
+      function addSelection(item: string) {
+        if (checked || selectionAnswers.includes(item)) return;
+        if (!reusable) setPool(current => current.filter(option => option !== item));
+        setSelectionAnswers(current => [...current, item]);
+      }
+
+      function removeSelection(item: string) {
+        if (checked) return;
+        setSelectionAnswers(current => current.filter(answer => answer !== item));
+        if (!reusable) setPool(current => current.includes(item) ? current : [...current, item]);
+      }
+
+      function dropInAnswerArea(e: React.DragEvent) {
+        e.preventDefault();
+        setDragOverSlot(null);
+        try {
+          const { item, from } = JSON.parse(e.dataTransfer.getData('text/plain'));
+          if (item && from === 'pool') addSelection(item);
+        } catch {
+          // Ignore malformed drag payloads from outside this component.
+        }
+      }
+
+      function dropInOptions(e: React.DragEvent) {
+        e.preventDefault();
+        setDragOverPool(false);
+        try {
+          const { item, from } = JSON.parse(e.dataTransfer.getData('text/plain'));
+          if (item && from === 'answer') removeSelection(item);
+        } catch {
+          // Ignore malformed drag payloads from outside this component.
+        }
+      }
+
+      return (
+        <div className="mb-3 space-y-3">
+          <p className="text-sm font-medium text-[var(--sp-ink-soft)]">
+            Drag the options you think are correct into the answer area.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <p className="mb-1.5 text-xs font-semibold text-[var(--sp-muted)]">Options</p>
+              <div
+                className={`min-h-24 space-y-1.5 rounded-lg border-2 border-dashed p-2 transition-colors ${dragOverPool ? 'border-[var(--sp-primary-300)] bg-[var(--sp-primary-50)]' : 'border-[var(--sp-border)]'}`}
+                onDragOver={event => { if (!checked) { event.preventDefault(); setDragOverPool(true); } }}
+                onDragLeave={() => setDragOverPool(false)}
+                onDrop={dropInOptions}
+              >
+                {pool.map(item => (
+                  <div
+                    key={item}
+                    draggable={!checked}
+                    onDragStart={event => onDragStartSelection(event, item, 'pool')}
+                    className={`select-none rounded-lg border border-[var(--sp-primary-200)] bg-white px-3 py-2 text-xs font-medium text-[var(--sp-ink)] ${checked ? '' : 'cursor-grab active:cursor-grabbing'}`}
+                  >
+                    {item}
+                  </div>
+                ))}
+                {pool.length === 0 && <p className="py-2 text-center text-xs text-[var(--sp-muted)]">No options remaining</p>}
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-1.5 text-xs font-semibold text-[var(--sp-muted)]">Answer area</p>
+              <div
+                className={`min-h-24 space-y-1.5 rounded-lg border-2 border-dashed p-2 transition-colors ${dragOverSlot === 0 ? 'border-[var(--sp-primary-400)] bg-[var(--sp-primary-50)]' : 'border-[var(--sp-border)]'}`}
+                onDragOver={event => { if (!checked) { event.preventDefault(); setDragOverSlot(0); } }}
+                onDragLeave={() => setDragOverSlot(null)}
+                onDrop={dropInAnswerArea}
+              >
+                {selectionAnswers.map(item => {
+                  const isCorrect = expectedAnswers.includes(item);
+                  return (
+                    <div
+                      key={item}
+                      draggable={!checked}
+                      onDragStart={event => onDragStartSelection(event, item, 'answer')}
+                      className={`select-none rounded-lg border px-3 py-2 text-xs font-medium ${
+                        checked
+                          ? isCorrect
+                            ? 'border-green-300 bg-green-50 text-green-800'
+                            : 'border-red-300 bg-red-50 text-red-700'
+                          : 'cursor-grab border-[var(--sp-primary-300)] bg-[var(--sp-primary-50)] text-[var(--sp-ink)] active:cursor-grabbing'
+                      }`}
+                    >
+                      {item}
+                    </div>
+                  );
+                })}
+                {selectionAnswers.length === 0 && (
+                  <p className="flex min-h-16 items-center justify-center text-xs text-[var(--sp-muted)]">Drop answers here</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {checked && !correctSelection && (
+            <div className="space-y-1">
+              {expectedAnswers.filter(answer => !selectionAnswers.includes(answer)).map(answer => (
+                <p key={answer} className="text-xs text-red-600">Missing: <span className="font-semibold">{answer}</span></p>
+              ))}
+            </div>
+          )}
+
+          {!hideSubmit && !checked && !showAnswer && (
+            <button
+              onClick={() => onSubmit(correctSelection)}
+              disabled={selectionAnswers.length === 0}
+              className="w-full rounded-xl bg-[var(--sp-primary-700)] py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--sp-primary-800)] disabled:opacity-35"
+            >Submit</button>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div className="mb-3 space-y-3">
         <div>
-          <p className="text-xs text-gray-400 mb-1.5 font-semibold uppercase tracking-wide">Drag items from here</p>
+          <p className="mb-1.5 text-xs font-semibold text-[var(--sp-muted)]">Options</p>
           <div
             className={`flex min-h-12 flex-wrap gap-2 rounded-lg border-2 border-dashed p-2 transition-colors ${dragOverPool ? 'border-[var(--sp-primary-300)] bg-[var(--sp-primary-50)]' : 'border-gray-200'}`}
             onDragOver={e => { if (!checked) { e.preventDefault(); setDragOverPool(true); } }}
@@ -231,7 +360,9 @@ export function InteractiveExam({
           </div>
         </div>
 
-        <div className="space-y-2">
+        <div>
+          <p className="mb-1.5 text-xs font-semibold text-[var(--sp-muted)]">Answer slots</p>
+          <div className="space-y-2">
           {data.prompts.map((p, i) => {
             const placed = picks[i];
             const isCorrect = checked && placed === p.correct;
@@ -269,6 +400,7 @@ export function InteractiveExam({
               </div>
             );
           })}
+          </div>
         </div>
 
         {checked && (() => {

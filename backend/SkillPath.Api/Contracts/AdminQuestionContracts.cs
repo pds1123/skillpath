@@ -12,6 +12,8 @@ public sealed record AdminQuestionListItemResponse(
     string Prompt,
     string Difficulty,
     string Status,
+    string Source,
+    string? SourceReference,
     DateTimeOffset UpdatedAt);
 
 public sealed record AdminQuestionPageResponse(
@@ -37,6 +39,8 @@ public sealed record AdminQuestionDetailResponse(
     string Mode,
     string Difficulty,
     string Status,
+    string Source,
+    string? SourceReference,
     IReadOnlyList<AdminQuestionOptionResponse> Options,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);

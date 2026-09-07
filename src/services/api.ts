@@ -145,6 +145,8 @@ export interface AdminQuestionListItem {
   prompt: string;
   difficulty: string;
   status: string;
+  source: string;
+  sourceReference: string | null;
   updatedAt: string;
 }
 
@@ -176,12 +178,14 @@ export interface AdminQuestionDetail {
   mode: string;
   difficulty: string;
   status: string;
+  source: string;
+  sourceReference: string | null;
   options: AdminQuestionOption[];
   createdAt: string;
   updatedAt: string;
 }
 
-export type AdminQuestionInput = Omit<AdminQuestionDetail, 'id' | 'legacyId' | 'createdAt' | 'updatedAt'>;
+export type AdminQuestionInput = Omit<AdminQuestionDetail, 'id' | 'legacyId' | 'source' | 'sourceReference' | 'createdAt' | 'updatedAt'>;
 
 export async function getAdminQuestions(filters: {
   certification?: string;

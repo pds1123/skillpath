@@ -86,6 +86,8 @@ public sealed class Question
 {
     public long Id { get; set; }
     public required string SourceKey { get; set; }
+    public string SourceAttribution { get; set; } = "catalog";
+    public string? SourceReference { get; set; }
     public int LegacyId { get; set; }
     public required string QuestionType { get; set; }
     public string ContentType { get; set; } = "practice_question";

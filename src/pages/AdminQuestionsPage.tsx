@@ -15,6 +15,14 @@ function statusClass(status: string) {
   return 'bg-[var(--sp-canvas)] text-[var(--sp-muted)]';
 }
 
+function sourceLabel(source: string) {
+  if (source === 'ctfl_278_399') return '278 + 399';
+  if (source === 'ctfl_278') return '278';
+  if (source === 'ctfl_399') return '399';
+  if (source === 'admin') return 'Admin';
+  return 'Catalog';
+}
+
 export function AdminQuestionsPage({ onNavigate }: Props) {
   const [data, setData] = useState<AdminQuestionPage | null>(null);
   const [certification, setCertification] = useState('');
@@ -110,20 +118,21 @@ export function AdminQuestionsPage({ onNavigate }: Props) {
         {error && <p className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</p>}
 
         <section className="mt-5 overflow-hidden rounded-xl bg-white ring-1 ring-[var(--sp-border)]" aria-label="Questions">
-          <div className="hidden grid-cols-[6rem_minmax(18rem,1fr)_12rem_9rem_7rem] gap-4 border-b border-[var(--sp-border)] bg-[var(--sp-primary-50)] px-5 py-3 text-xs font-semibold text-[var(--sp-muted)] md:grid">
-            <span>ID</span><span>Question</span><span>Platform and domain</span><span>Type</span><span>Status</span>
+          <div className="hidden grid-cols-[5rem_minmax(16rem,1fr)_11rem_8rem_7rem_7rem] gap-4 border-b border-[var(--sp-border)] bg-[var(--sp-primary-50)] px-5 py-3 text-xs font-semibold text-[var(--sp-muted)] md:grid">
+            <span>ID</span><span>Question</span><span>Platform and domain</span><span>Type</span><span>Status</span><span>Source</span>
           </div>
           {loading && !data ? (
             <div className="space-y-3 p-5" role="status" aria-label="Loading questions">
               {[1, 2, 3, 4, 5].map(item => <div key={item} className="h-14 animate-pulse rounded-lg bg-[var(--sp-primary-50)]" />)}
             </div>
           ) : data?.items.length ? data.items.map(item => (
-            <button type="button" key={item.id} onClick={() => onNavigate('adminQuestion', { questionId: String(item.id) })} className="grid w-full gap-2 border-b border-[var(--sp-border)] px-5 py-4 text-left transition last:border-0 hover:bg-[var(--sp-primary-50)] focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[var(--sp-primary-600)] md:grid-cols-[6rem_minmax(18rem,1fr)_12rem_9rem_7rem] md:items-center md:gap-4">
+            <button type="button" key={item.id} onClick={() => onNavigate('adminQuestion', { questionId: String(item.id) })} className="grid w-full gap-2 border-b border-[var(--sp-border)] px-5 py-4 text-left transition last:border-0 hover:bg-[var(--sp-primary-50)] focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[var(--sp-primary-600)] md:grid-cols-[5rem_minmax(16rem,1fr)_11rem_8rem_7rem_7rem] md:items-center md:gap-4">
               <span className="font-mono text-xs text-[var(--sp-muted)]">#{item.id}</span>
               <span className="line-clamp-2 text-sm font-medium leading-5 text-[var(--sp-ink-strong)]">{item.prompt}</span>
               <span className="text-xs text-[var(--sp-muted)]"><span className="block font-semibold text-[var(--sp-ink-soft)]">{item.certification}</span><span className="mt-0.5 block truncate">{item.domain}</span></span>
               <span className="text-xs capitalize text-[var(--sp-muted)]">{item.type.replaceAll('_', ' ')}</span>
               <span className={`w-fit rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${statusClass(item.status)}`}>{item.status}</span>
+              <span className="w-fit rounded-md bg-[var(--sp-canvas)] px-2.5 py-1 font-mono text-xs font-semibold tabular-nums text-[var(--sp-ink-soft)] ring-1 ring-inset ring-[var(--sp-border)]">{item.sourceReference?.replaceAll('|', ' · ') ?? sourceLabel(item.source)}</span>
             </button>
           )) : (
             <div className="px-6 py-14 text-center">

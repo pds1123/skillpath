@@ -37,6 +37,14 @@ const EMPTY_QUESTION: AdminQuestionInput = {
 
 const inputClass = 'w-full rounded-lg bg-white px-3 py-2.5 text-sm text-[var(--sp-ink)] ring-1 ring-inset ring-[var(--sp-border)] placeholder:text-[var(--sp-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--sp-primary-600)]';
 
+function sourceLabel(source: string) {
+  if (source === 'ctfl_278_399') return '278 + 399';
+  if (source === 'ctfl_278') return '278';
+  if (source === 'ctfl_399') return '399';
+  if (source === 'admin') return 'Admin-created';
+  return 'Catalog';
+}
+
 export function AdminQuestionEditorPage({ onNavigate }: Props) {
   const { questionId } = useParams();
   const isNew = questionId === 'new';
@@ -46,6 +54,8 @@ export function AdminQuestionEditorPage({ onNavigate }: Props) {
   const [domains, setDomains] = useState<string[]>([]);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
+  const [source, setSource] = useState(isNew ? 'admin' : 'catalog');
+  const [sourceReference, setSourceReference] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmArchive, setConfirmArchive] = useState(false);
 
@@ -62,6 +72,8 @@ export function AdminQuestionEditorPage({ onNavigate }: Props) {
     if (!isNew && id) {
       getAdminQuestion(id)
         .then(question => {
+          if (active) setSource(question.source);
+          if (active) setSourceReference(question.sourceReference);
           if (active) setForm({
             certification: question.certification,
             domain: question.domain,
@@ -136,7 +148,12 @@ export function AdminQuestionEditorPage({ onNavigate }: Props) {
             <p className="text-sm font-semibold text-[var(--sp-primary-700)]">Admin</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-[var(--sp-ink-strong)]">{isNew ? 'Create question' : `Edit question #${id}`}</h1>
           </div>
-          {!isNew && <span className={`w-fit rounded-full px-3 py-1 text-xs font-semibold capitalize ${form.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-[var(--sp-primary-100)] text-[var(--sp-primary-800)]'}`}>{form.status}</span>}
+          {!isNew && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="w-fit rounded-md bg-white px-3 py-1 text-xs font-semibold text-[var(--sp-ink-soft)] ring-1 ring-inset ring-[var(--sp-border)]">Source: <span className="font-mono tabular-nums text-[var(--sp-primary-800)]">{sourceReference?.replaceAll('|', ' · ') ?? sourceLabel(source)}</span></span>
+              <span className={`w-fit rounded-full px-3 py-1 text-xs font-semibold capitalize ${form.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-[var(--sp-primary-100)] text-[var(--sp-primary-800)]'}`}>{form.status}</span>
+            </div>
+          )}
         </div>
 
         {error && <p className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</p>}

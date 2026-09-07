@@ -73,6 +73,8 @@ public sealed class AdminQuestionsController(SkillPathDbContext db) : Controller
                 item.Question.Prompt,
                 item.Question.Difficulty,
                 item.Question.Status,
+                item.Question.SourceAttribution,
+                item.Question.SourceReference,
                 item.Question.UpdatedAt))
             .ToListAsync();
 
@@ -100,6 +102,8 @@ public sealed class AdminQuestionsController(SkillPathDbContext db) : Controller
         var question = new Question
         {
             SourceKey = $"admin:{Guid.NewGuid():N}",
+            SourceAttribution = "admin",
+            SourceReference = $"admin.{nextLegacyId}",
             LegacyId = nextLegacyId,
             QuestionType = Normalize(request.Type),
             ContentType = Normalize(request.ContentType),
@@ -206,6 +210,8 @@ public sealed class AdminQuestionsController(SkillPathDbContext db) : Controller
             row.Question.Mode,
             row.Question.Difficulty,
             row.Question.Status,
+            row.Question.SourceAttribution,
+            row.Question.SourceReference,
             options,
             row.Question.CreatedAt,
             row.Question.UpdatedAt);

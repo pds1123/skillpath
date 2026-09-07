@@ -8,6 +8,7 @@ import { INTERACTIVE_DATA } from '../data/interactiveData';
 import type { InteractiveData } from '../data/interactiveData';
 import { InteractiveExam } from '../components/InteractiveExam';
 import { AppHeader } from '../components/AppHeader';
+import { QuestionSourceBadge } from '../components/QuestionSourceBadge';
 import {
   revealQuestionAnswer,
   submitQuestionAnswer,
@@ -377,6 +378,7 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
           <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-[var(--sp-primary-800)] ring-1 ring-[var(--sp-border)]">
             {question.domain}
           </span>
+          <QuestionSourceBadge references={question.sourceReferences} />
         </div>
         <div className="p-8 text-center text-[var(--sp-muted)]">
           <svg className="mx-auto mb-3 h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -397,6 +399,7 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
         <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-[var(--sp-primary-800)] ring-1 ring-[var(--sp-border)]">
           {question.domain}
         </span>
+        <QuestionSourceBadge references={question.sourceReferences} />
         {question.type !== 'multiple_choice' && question.type !== 'yes_no' && (
           <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 font-medium capitalize">
             {question.type.replace('_', ' ')}

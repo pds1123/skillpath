@@ -10,6 +10,7 @@ import {
 import type { ProgressState } from '../hooks/useProgress';
 import { submitQuestionAnswer, type AnswerGrade } from '../services/api';
 import { QuestionAiAnalysis } from '../components/QuestionAiAnalysis';
+import { QuestionSourceBadge } from '../components/QuestionSourceBadge';
 
 interface Props {
   progress: ProgressState;
@@ -304,9 +305,12 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onKnowledgeC
             </div>
           ) : (
             <>
-              <div className="mb-4 flex items-center justify-between text-xs text-[var(--sp-muted)]">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--sp-muted)]">
                 <span>Question {practiceIndex + 1} of {practiceQuestions.length}</span>
-                <span className="rounded-md bg-[var(--sp-primary-100)] px-2 py-1 font-medium text-[var(--sp-primary-700)]">{module.name}</span>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <QuestionSourceBadge references={question.sourceReferences} />
+                  <span className="rounded-md bg-[var(--sp-primary-100)] px-2 py-1 font-medium text-[var(--sp-primary-700)]">{module.name}</span>
+                </div>
               </div>
               <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-[var(--sp-primary-50)]">
                 <div className="h-full rounded-full bg-[var(--sp-primary-600)] transition-[width]" style={{ width: `${((practiceIndex + 1) / practiceQuestions.length) * 100}%` }} />

@@ -8,6 +8,7 @@
     "dev:api": "dotnet run --project backend/SkillPath.Api",
     "db:export": "node scripts/export-question-bank.mjs",
     "db:import:ctfl": "node scripts/import-istqb-ctfl.mjs",
+    "db:import:ctfl:merge": "node scripts/import-istqb-ctfl-merged.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

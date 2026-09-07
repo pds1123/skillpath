@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Question } from '../data/questions';
 import { submitQuestionAnswer, type AnswerGrade } from '../services/api';
+import { QuestionSourceBadge } from './QuestionSourceBadge';
 
 interface Props {
   question: Question;
@@ -100,9 +101,12 @@ export function QuestionCard({ question, questionNumber, totalQuestions, onAnswe
             <span>Question {questionNumber} of {totalQuestions}</span>
             {modeLabel}
           </div>
-          <span className="px-2 py-0.5 rounded-md bg-[var(--sp-primary-100)] text-[var(--sp-primary-700)] text-xs font-medium">
-            {question.domain}
-          </span>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <QuestionSourceBadge references={question.sourceReferences} />
+            <span className="px-2 py-0.5 rounded-md bg-[var(--sp-primary-100)] text-[var(--sp-primary-700)] text-xs font-medium">
+              {question.domain}
+            </span>
+          </div>
         </div>
       )}
 

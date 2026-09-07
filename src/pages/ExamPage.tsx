@@ -5,6 +5,7 @@ import { INTERACTIVE_DATA } from '../data/interactiveData';
 import { CTFL_QUESTION_IMAGES, QUESTION_IMAGES } from '../data/questionImages';
 import { Timer } from '../components/Timer';
 import { InteractiveExam } from '../components/InteractiveExam';
+import { QuestionSourceBadge } from '../components/QuestionSourceBadge';
 import type { ExamAttempt } from '../hooks/useProgress';
 import { gradeExam, type ExamGrade } from '../services/api';
 
@@ -311,6 +312,7 @@ export function ExamPage({ onNavigate, onExamComplete, activeCert }: Props) {
               {currentIndex + 1}
             </span>
             <div className="flex-1">
+              <QuestionSourceBadge references={question.sourceReferences} className="mb-2" />
               {isMulti && (
                 <p className="mb-1.5 text-xs font-medium text-[var(--sp-primary-700)]">Select all that apply</p>
               )}

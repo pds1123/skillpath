@@ -119,6 +119,7 @@ public static class QuestionBankSeeder
                 var question = new Question
                 {
                     SourceKey = questionSeed.SourceKey,
+                    SourceAttribution = "catalog",
                     LegacyId = questionSeed.LegacyId,
                     QuestionType = questionSeed.QuestionType,
                     ContentType = questionSeed.ContentType,

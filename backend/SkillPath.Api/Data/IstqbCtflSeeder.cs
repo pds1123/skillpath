@@ -119,7 +119,7 @@ public static class IstqbCtflSeeder
         var seed = await JsonSerializer.DeserializeAsync<CtflSeed>(stream, JsonOptions)
             ?? throw new InvalidOperationException("CTFL question seed file is empty or invalid.");
         var existingQuestions = await db.Questions
-            .Where(item => item.SourceKey.StartsWith("CTFL:"))
+            .Where(item => item.SourceKey.StartsWith("CTFL"))
             .ToDictionaryAsync(item => item.SourceKey, StringComparer.OrdinalIgnoreCase);
         var existingQuestionIds = existingQuestions.Values.Select(item => item.Id).ToList();
         var existingCertificationMappings = await db.CertificationQuestions
@@ -130,6 +130,7 @@ public static class IstqbCtflSeeder
             .ToDictionaryAsync(item => item.QuestionId);
         var imported = 0;
         var synchronized = 0;
+        var pendingImports = new List<(Question Question, CtflQuestionSeed Seed, LearningModule Module)>();
 
         foreach (var questionSeed in seed.Questions)
         {
@@ -139,6 +140,11 @@ public static class IstqbCtflSeeder
             if (existingQuestions.TryGetValue(questionSeed.SourceKey, out var existingQuestion))
             {
                 existingQuestion.Prompt = questionSeed.Prompt;
+                existingQuestion.SourceAttribution = questionSeed.SourceAttribution ?? "ctfl_278";
+                existingQuestion.SourceReference = questionSeed.SourceReference;
+                existingQuestion.Status = questionSeed.Status ?? "published";
+                if (string.IsNullOrWhiteSpace(existingQuestion.Explanation))
+                    existingQuestion.Explanation = questionSeed.Explanation;
                 existingQuestion.TableData = SerializeOptional(questionSeed.TableData);
                 existingQuestion.UpdatedAt = DateTimeOffset.UtcNow;
                 if (existingCertificationMappings.TryGetValue(existingQuestion.Id, out var certificationMapping))
@@ -161,19 +167,26 @@ public static class IstqbCtflSeeder
             var question = new Question
             {
                 SourceKey = questionSeed.SourceKey,
+                SourceAttribution = questionSeed.SourceAttribution ?? "ctfl_278",
+                SourceReference = questionSeed.SourceReference,
                 LegacyId = questionSeed.LegacyId,
                 QuestionType = "multiple_choice",
                 ContentType = "mock_question",
                 Prompt = questionSeed.Prompt,
-                Explanation = null,
+                Explanation = questionSeed.Explanation,
                 TableData = SerializeOptional(questionSeed.TableData),
                 Mode = "quiz",
                 Difficulty = "beginner",
-                Status = "published",
+                Status = questionSeed.Status ?? "published",
             };
             db.Questions.Add(question);
-            await db.SaveChangesAsync();
+            pendingImports.Add((question, questionSeed, module));
+            imported += 1;
+        }
 
+        await db.SaveChangesAsync();
+        foreach (var (question, questionSeed, module) in pendingImports)
+        {
             db.QuestionOptions.AddRange(questionSeed.Options.Select((option, index) => new QuestionOption
             {
                 QuestionId = question.Id,
@@ -194,11 +207,7 @@ public static class IstqbCtflSeeder
                 ModuleId = module.Id,
                 IsPrimary = true,
             });
-            imported += 1;
-
-            if (imported % 100 == 0) await db.SaveChangesAsync();
         }
-
         await db.SaveChangesAsync();
         logger.LogInformation(
             "Imported {ImportedCount} CTFL questions; {ExistingCount} were synchronized; {SkippedCount} image-dependent questions stayed excluded.",
@@ -293,9 +302,13 @@ public static class IstqbCtflSeeder
     private sealed record CtflQuestionSeed(
         int LegacyId,
         string SourceKey,
+        string? SourceAttribution,
+        string? SourceReference,
         string Prompt,
         string Domain,
         List<CtflOptionSeed> Options,
-        JsonElement? TableData);
+        JsonElement? TableData,
+        string? Explanation,
+        string? Status);
     private sealed record CtflOptionSeed(string Key, string Text, bool IsCorrect);
 }

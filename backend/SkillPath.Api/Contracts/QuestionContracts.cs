@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace SkillPath.Api.Contracts;
 
@@ -14,6 +15,7 @@ public sealed record QuestionResponse(
     string Domain,
     string Mode,
     bool MultipleSelect,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<string>? SourceReferences,
     JsonElement? Table);
 
 public sealed record QuestionBankSummaryResponse(
