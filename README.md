@@ -21,7 +21,8 @@ The product is organised around learning rather than a question catalogue: learn
 - Server-side progress persistence for signed-in users.
 - SQLite database managed through Entity Framework Core migrations.
 - Database-backed question APIs for multiple learning paths.
-- Server-side answer grading so correct answers are not exposed by question-list responses.
+- A server-graded question engine with explicit formats for choice, selection, matching, ordering, dropdown, matrix, self-grade, and image-hotspot questions.
+- Public question responses omit solutions; exact submissions and solutions are returned only through grading or reveal endpoints.
 
 ### Administration
 
@@ -157,7 +158,7 @@ Useful commands:
 SELECT Id, Email, DisplayName, Role, Status FROM Users;
 SELECT Id, LearningPathId, Name, SortOrder, Status FROM Modules ORDER BY LearningPathId, SortOrder;
 SELECT Id, ModuleId, Title, SortOrder, Status FROM Lessons LIMIT 20;
-SELECT Id, LegacyId, QuestionType, Status FROM Questions LIMIT 20;
+SELECT Id, LegacyId, InteractionType, Status FROM Questions LIMIT 20;
 
 .schema Modules
 .quit
@@ -190,6 +191,7 @@ src/
   hooks/                Certification and progress hooks
   pages/                Learner, assessment, account, and Admin pages
   services/             Typed API client
+  types/                Shared frontend question-engine contracts
 
 backend/
   SkillPath.Api/
@@ -197,9 +199,13 @@ backend/
     Controllers/        Authentication, progress, question, exam, and Admin APIs
     Data/               EF Core context, migrations, import, and seeding
     Models/             Database entities
+    Services/           Central question validation and grading engine
+  SkillPath.Api.Tests/  xUnit unit and API integration tests
   database/             Provider-neutral database design and SQL reference
 
 scripts/                Question export and source-processing utilities
+tests/e2e/              Playwright browser and Axe accessibility tests
+.github/workflows/      Automated CI quality gates
 ```
 
 ## Private development data
@@ -220,8 +226,24 @@ The committed `*.example.ts` files keep the frontend buildable without publishin
 ```bash
 npm run lint
 npm run build
-dotnet build backend/SkillPath.Api/SkillPath.Api.csproj
+npm run test:unit:coverage
+npm run test:backend
+npm run test:e2e
 ```
+
+`npm test` runs the frontend unit tests and backend test suite. `npm run test:all` runs lint, production build, coverage, backend tests, and browser tests.
+
+The GitHub Actions workflow runs on every push and pull request to `main`:
+
+```text
+Frontend lint, build, and component coverage
+                    +
+Backend unit tests, API integration tests, and clean migration
+                    ↓
+Playwright user flows and Axe accessibility checks
+```
+
+Test databases are isolated from the local development database. CI reports include frontend coverage, backend coverage/TRX results, and Playwright failure traces.
 
 ## License
 

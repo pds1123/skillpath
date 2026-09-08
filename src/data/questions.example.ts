@@ -9,7 +9,9 @@
 // so all pages, filters, exam simulation, and cert switching work as-is.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type QuestionType = 'multiple_choice' | 'yes_no' | 'drag_drop' | 'hotspot';
+import type { InteractionDefinition, QuestionInteractionType } from '../types/questionEngine';
+
+export type QuestionType = QuestionInteractionType;
 export type QuestionMode = 'quiz' | 'reveal' | 'read';
 export type CertificationKey = 'AZ-900' | 'CLF-C02' | 'CTFL';
 export type SkillKey = 'azure-fundamentals' | 'aws-fundamentals' | 'istqb-ctfl';
@@ -65,6 +67,7 @@ export interface Question {
   mode: QuestionMode;
   multipleSelect?: boolean;
   table?: { headers: string[]; rows: string[][] };
+  interaction?: InteractionDefinition;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -74,7 +77,7 @@ export const QUESTIONS: Question[] = [
   {
     id: 1,
     certification: 'AZ-900',
-    type: 'multiple_choice',
+    type: 'single_choice',
     question: 'Which cloud service model gives you the most control over the underlying operating system?',
     options: {
       A: 'Software as a Service (SaaS)',
@@ -91,7 +94,7 @@ export const QUESTIONS: Question[] = [
   {
     id: 2,
     certification: 'AZ-900',
-    type: 'multiple_choice',
+    type: 'single_choice',
     question: 'Which Azure construct is primarily used to group resources for billing and access control?',
     options: {
       A: 'Availability set',
@@ -108,7 +111,7 @@ export const QUESTIONS: Question[] = [
   {
     id: 3,
     certification: 'AZ-900',
-    type: 'multiple_choice',
+    type: 'single_choice',
     question: 'Which Azure service is a fully managed, event-driven, serverless compute platform?',
     options: {
       A: 'Azure Virtual Machines',
@@ -137,7 +140,7 @@ export const QUESTIONS: Question[] = [
   {
     id: 5,
     certification: 'AZ-900',
-    type: 'multiple_choice',
+    type: 'single_choice',
     question: 'What is the primary benefit of using multiple Availability Zones?',
     options: {
       A: 'Lower monthly cost',
@@ -156,8 +159,6 @@ export const QUESTIONS: Question[] = [
 // ─────────────────────────────────────────────────────────────────────────────
 // Data-layer helpers (same shape as the full app)
 // ─────────────────────────────────────────────────────────────────────────────
-import { INTERACTIVE_DATA } from './interactiveData';
-
 export const ALL_QUESTIONS: Question[] = [];
 
 export async function loadQuestionBank(): Promise<void> {
@@ -166,7 +167,7 @@ export async function loadQuestionBank(): Promise<void> {
     type QuestionPage = { items: Array<{
       id: number; legacyId: number; certification: CertificationKey; type: QuestionType;
       question: string; options: Record<string, string>; domain: string; mode: QuestionMode;
-      multipleSelect: boolean; table?: Question['table'] | null;
+      multipleSelect: boolean; table?: Question['table'] | null; interaction?: InteractionDefinition | null;
     }>; total: number; offset: number; limit: number };
     const items: QuestionPage['items'] = [];
     let offset = 0;
@@ -185,6 +186,7 @@ export async function loadQuestionBank(): Promise<void> {
       answer_text: '',
       community_vote: '',
       table: item.table ?? undefined,
+      interaction: item.interaction ?? undefined,
     }));
   }));
   ALL_QUESTIONS.splice(0, ALL_QUESTIONS.length, ...responses.flat());
@@ -199,7 +201,7 @@ export function domainsForCert(cert: CertificationKey): string[] {
 }
 
 export function quizQuestionsForCert(cert: CertificationKey): Question[] {
-  return questionsForCert(cert).filter(q => q.mode === 'quiz' || INTERACTIVE_DATA[q.legacyId ?? q.id]);
+  return questionsForCert(cert).filter(q => q.mode === 'quiz' || (q.interaction && q.type !== 'image_self_grade'));
 }
 
 export function answerableQuestionsForCert(cert: CertificationKey): Question[] {

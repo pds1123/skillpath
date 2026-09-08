@@ -1,3 +1,5 @@
+import type { InteractionResponse, InteractionSolution } from '../types/questionEngine';
+
 export interface AuthUser {
   id: string;
   email: string;
@@ -79,18 +81,20 @@ export interface AnswerGrade {
   attemptId: string | null;
   correct: boolean;
   correctAnswer: string[];
+  correctInteraction: InteractionSolution | null;
   explanation: string | null;
 }
 
 export interface RevealedAnswer {
   correctAnswer: string[];
+  correctInteraction: InteractionSolution | null;
   explanation: string | null;
 }
 
 export async function submitQuestionAnswer(
   questionId: number,
   selectedAnswers: string[],
-  options?: { selfGrade?: boolean; practiceSessionId?: string; durationSeconds?: number },
+  options?: { selfGrade?: boolean; interactionResponse?: InteractionResponse; practiceSessionId?: string; durationSeconds?: number },
 ) {
   return request<AnswerGrade>(`/api/questions/${questionId}/attempts`, {
     method: 'POST',
@@ -113,6 +117,7 @@ export interface ExamGrade {
     questionId: number;
     correct: boolean;
     correctAnswer: string[];
+    correctInteraction: InteractionSolution | null;
     explanation: string | null;
   }>;
 }
@@ -120,7 +125,7 @@ export interface ExamGrade {
 export async function gradeExam(input: {
   certification: string;
   durationSeconds: number;
-  answers: Array<{ questionId: number; selectedAnswers: string[]; selfGrade?: boolean }>;
+  answers: Array<{ questionId: number; selectedAnswers?: string[]; selfGrade?: boolean; interactionResponse?: InteractionResponse }>;
 }) {
   return request<ExamGrade>('/api/exams/grade', {
     method: 'POST',
@@ -180,6 +185,7 @@ export interface AdminQuestionDetail {
   status: string;
   source: string;
   sourceReference: string | null;
+  interactionData: string | null;
   options: AdminQuestionOption[];
   createdAt: string;
   updatedAt: string;

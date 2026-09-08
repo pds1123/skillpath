@@ -130,6 +130,7 @@ public sealed class SkillPathDbContext(DbContextOptions<SkillPathDbContext> opti
         questions.ToTable("Questions", table =>
         {
             table.HasCheckConstraint("CK_Questions_Type", "QuestionType IN ('multiple_choice', 'yes_no', 'drag_drop', 'hotspot', 'self_grade')");
+            table.HasCheckConstraint("CK_Questions_InteractionType", "InteractionType IN ('single_choice', 'multiple_choice', 'yes_no', 'unordered_selection', 'fixed_match', 'ordering', 'dropdown', 'yes_no_matrix', 'image_self_grade', 'image_hotspot')");
             table.HasCheckConstraint("CK_Questions_ContentType", "ContentType IN ('knowledge_check', 'practice_question', 'mock_question')");
             table.HasCheckConstraint("CK_Questions_Mode", "Mode IN ('quiz', 'reveal', 'read')");
             table.HasCheckConstraint("CK_Questions_Difficulty", "Difficulty IN ('beginner', 'intermediate', 'advanced')");
@@ -142,6 +143,7 @@ public sealed class SkillPathDbContext(DbContextOptions<SkillPathDbContext> opti
         questions.Property(x => x.SourceAttribution).HasMaxLength(30);
         questions.Property(x => x.SourceReference).HasMaxLength(100);
         questions.Property(x => x.QuestionType).HasMaxLength(30);
+        questions.Property(x => x.InteractionType).HasMaxLength(30);
         questions.Property(x => x.ContentType).HasMaxLength(30);
         questions.Property(x => x.Mode).HasMaxLength(20);
         questions.Property(x => x.Difficulty).HasMaxLength(20);

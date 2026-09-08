@@ -1,0 +1,121 @@
+name: Quality checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Frontend quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Run component tests with coverage
+        run: npm run test:unit:coverage
+
+      - name: Upload frontend coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: coverage/
+          if-no-files-found: error
+
+  backend:
+    name: Backend quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore tools and dependencies
+        run: |
+          dotnet tool restore
+          dotnet restore backend/SkillPath.Api.Tests/SkillPath.Api.Tests.csproj
+
+      - name: Verify formatting
+        run: |
+          dotnet format backend/SkillPath.Api/SkillPath.Api.csproj --no-restore --verify-no-changes
+          dotnet format backend/SkillPath.Api.Tests/SkillPath.Api.Tests.csproj --no-restore --verify-no-changes
+
+      - name: Run unit and API integration tests
+        run: dotnet test backend/SkillPath.Api.Tests/SkillPath.Api.Tests.csproj --configuration Release --no-restore --collect:"XPlat Code Coverage" --results-directory TestResults --logger trx
+
+      - name: Verify migrations on a clean database
+        run: dotnet ef database update --project backend/SkillPath.Api --startup-project backend/SkillPath.Api --connection "Data Source=${{ runner.temp }}/skillpath-migration-test.db"
+
+      - name: Upload backend test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: TestResults/
+          if-no-files-found: error
+
+  browser:
+    name: Browser and accessibility
+    needs: [frontend, backend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          dotnet restore backend/SkillPath.Api/SkillPath.Api.csproj
+          npx playwright install --with-deps chromium
+
+      - name: Run Playwright and Axe tests
+        run: npm run test:e2e
+
+      - name: Upload browser report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore

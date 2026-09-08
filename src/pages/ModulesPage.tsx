@@ -11,6 +11,9 @@ import type { ProgressState } from '../hooks/useProgress';
 import { submitQuestionAnswer, type AnswerGrade } from '../services/api';
 import { QuestionAiAnalysis } from '../components/QuestionAiAnalysis';
 import { QuestionSourceBadge } from '../components/QuestionSourceBadge';
+import { InteractiveExam } from '../components/InteractiveExam';
+import { CTFL_QUESTION_IMAGES, QUESTION_IMAGES } from '../data/questionImages';
+import type { InteractiveSubmission } from '../types/questionEngine';
 
 interface Props {
   progress: ProgressState;
@@ -112,6 +115,7 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onKnowledgeC
   const completedCount = lessons.filter(lesson => progress.completedLessons[lesson.key]).length;
   const lessonPercentage = Math.round((completedCount / Math.max(lessons.length, 1)) * 100);
   const question = practiceQuestions[practiceIndex];
+  const interactive = question?.interaction;
   const isMulti = question?.multipleSelect ?? false;
 
   function resetQuestion() {
@@ -159,6 +163,22 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onKnowledgeC
       setGrade(result);
       setSubmitted(true);
       onAnswer(question.id, result.correct, selected);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Unable to check this answer.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function submitInteractive(submission: InteractiveSubmission) {
+    if (!question || submitted || submitting) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const result = await submitQuestionAnswer(question.id, [], submission);
+      setGrade(result);
+      setSubmitted(true);
+      onAnswer(question.id, result.correct, []);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Unable to check this answer.');
     } finally {
@@ -317,9 +337,9 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onKnowledgeC
               </div>
 
               <div className="rounded-2xl bg-white p-5 ring-1 ring-[var(--sp-border)] sm:p-7">
-                {isMulti && !submitted && <p className="mb-2 text-xs font-semibold text-[var(--sp-primary-600)]">Select all that apply</p>}
+                {isMulti && !interactive && !submitted && <p className="mb-2 text-xs font-semibold text-[var(--sp-primary-600)]">Select all that apply</p>}
                 <p className="text-sm font-medium leading-7 text-[var(--sp-ink)] whitespace-pre-wrap">{question.question}</p>
-                <div className="mt-5 space-y-2">
+                {!interactive && <div className="mt-5 space-y-2">
                   {Object.entries(question.options).map(([letter, text]) => (
                     <button type="button" key={letter} onClick={() => toggleOption(letter)} disabled={submitted} className={optionClass(letter)}>
                       <span className="flex items-start gap-3">
@@ -328,12 +348,27 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onKnowledgeC
                       </span>
                     </button>
                   ))}
-                </div>
+                </div>}
+
+                {interactive && (
+                  <div className="mt-5">
+                    <InteractiveExam
+                      key={question.id}
+                      data={interactive}
+                      interactionType={question.type}
+                      imageUrl={(question.certification === 'CTFL' ? CTFL_QUESTION_IMAGES : QUESTION_IMAGES)[question.legacyId ?? question.id]?.question_img}
+                      checked={submitted}
+                      solution={grade?.correctInteraction ?? undefined}
+                      showAnswer={submitted}
+                      onSubmit={submission => void submitInteractive(submission)}
+                    />
+                  </div>
+                )}
 
                 {submitted ? (
                   <>
                     <div className={`mt-4 rounded-lg p-3 text-sm ${isCorrect ? 'bg-[var(--sp-primary-50)] text-[var(--sp-primary-700)]' : 'bg-[#fff1ee] text-[#813c31]'}`}>
-                      {isCorrect ? 'Correct' : `Correct answer: ${grade?.correctAnswer.join(', ')}`}
+                      {isCorrect ? 'Correct' : interactive ? 'Some answers are incorrect' : `Correct answer: ${grade?.correctAnswer.join(', ')}`}
                       {grade?.explanation && <p className="mt-2 leading-6">{grade.explanation}</p>}
                     </div>
                     {grade && (
@@ -347,7 +382,7 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onKnowledgeC
                     )}
                   </>
                 ) : (
-                  <button
+                  !interactive && <button
                     type="button"
                     onClick={() => void submit()}
                     disabled={!selected.length || submitting}

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SkillPath.Api.Contracts;
 using SkillPath.Api.Data;
 using SkillPath.Api.Models;
+using SkillPath.Api.Services;
 
 namespace SkillPath.Api.Controllers;
 
@@ -36,22 +37,34 @@ public sealed class ExamsController(SkillPathDbContext db) : ControllerBase
         var optionsByQuestion = options.GroupBy(option => option.QuestionId).ToDictionary(group => group.Key, group => group.ToList());
         var questionById = questionRows.ToDictionary(row => row.Question.Id);
         var results = new List<ExamQuestionResultResponse>();
+        var gradesByQuestion = new Dictionary<long, QuestionGradeResult>();
         var domainScores = new Dictionary<string, DomainScoreResponse>();
 
         foreach (var answer in request.Answers)
         {
             var row = questionById[answer.QuestionId];
             var questionOptions = optionsByQuestion.GetValueOrDefault(answer.QuestionId) ?? [];
-            var correctAnswer = questionOptions.Where(option => option.IsCorrect).Select(option => option.OptionKey).Order().ToList();
-            var selected = answer.SelectedAnswers.Select(item => item.Trim().ToUpperInvariant()).Distinct().Order().ToList();
-            var validKeys = questionOptions.Select(option => option.OptionKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            if (answer.SelfGrade is null && selected.Any(key => !validKeys.Contains(key)))
-                return BadRequest(new ApiError($"Question {answer.QuestionId} contains an invalid answer."));
-            var correct = answer.SelfGrade ?? selected.SequenceEqual(correctAnswer, StringComparer.OrdinalIgnoreCase);
-            results.Add(new ExamQuestionResultResponse(answer.QuestionId, correct, correctAnswer, row.Question.Explanation));
+            if (!QuestionEngine.TryGrade(
+                    row.Question,
+                    questionOptions,
+                    answer.SelectedAnswers,
+                    answer.SelfGrade,
+                    answer.InteractionResponse,
+                    true,
+                    out var grade,
+                    out var gradeError))
+                return BadRequest(new ApiError($"Question {answer.QuestionId}: {gradeError}"));
+            var graded = grade!;
+            gradesByQuestion[answer.QuestionId] = graded;
+            results.Add(new ExamQuestionResultResponse(
+                answer.QuestionId,
+                graded.Correct,
+                graded.CorrectAnswer,
+                graded.CorrectInteraction,
+                row.Question.Explanation));
 
             var current = domainScores.GetValueOrDefault(row.Domain) ?? new DomainScoreResponse(0, 0);
-            domainScores[row.Domain] = new DomainScoreResponse(current.Correct + (correct ? 1 : 0), current.Total + 1);
+            domainScores[row.Domain] = new DomainScoreResponse(current.Correct + (graded.Correct ? 1 : 0), current.Total + 1);
         }
 
         Guid? examAttemptId = null;
@@ -80,7 +93,7 @@ public sealed class ExamsController(SkillPathDbContext db) : ControllerBase
                     QuestionId = answer.QuestionId,
                     ExamAttemptId = exam.Id,
                     IsCorrect = result.Correct,
-                    ResponseData = answer.SelfGrade is null ? null : System.Text.Json.JsonSerializer.Serialize(new { selfGrade = answer.SelfGrade }),
+                    ResponseData = gradesByQuestion[answer.QuestionId].ResponseData,
                 };
                 db.QuestionAttempts.Add(attempt);
                 db.ExamAttemptQuestions.Add(new ExamAttemptQuestion
@@ -90,7 +103,8 @@ public sealed class ExamsController(SkillPathDbContext db) : ControllerBase
                     Position = checked((short)(index + 1)),
                     QuestionAttemptId = attempt.Id,
                 });
-                foreach (var option in optionsByQuestion[answer.QuestionId].Where(option => answer.SelectedAnswers.Contains(option.OptionKey, StringComparer.OrdinalIgnoreCase)))
+                foreach (var option in (optionsByQuestion.GetValueOrDefault(answer.QuestionId) ?? [])
+                             .Where(option => (answer.SelectedAnswers ?? []).Contains(option.OptionKey, StringComparer.OrdinalIgnoreCase)))
                     db.QuestionAttemptSelections.Add(new QuestionAttemptSelection { QuestionAttemptId = attempt.Id, QuestionOptionId = option.Id });
             }
             await db.SaveChangesAsync();

@@ -20,10 +20,11 @@ interface Props {
 const EMPTY_QUESTION: AdminQuestionInput = {
   certification: 'AZ-900',
   domain: 'General Azure',
-  type: 'multiple_choice',
+  type: 'single_choice',
   contentType: 'practice_question',
   prompt: '',
   explanation: '',
+  interactionData: null,
   mode: 'quiz',
   difficulty: 'beginner',
   status: 'draft',
@@ -81,6 +82,7 @@ export function AdminQuestionEditorPage({ onNavigate }: Props) {
             contentType: question.contentType,
             prompt: question.prompt,
             explanation: question.explanation ?? '',
+            interactionData: question.interactionData,
             mode: question.mode,
             difficulty: question.difficulty,
             status: question.status,
@@ -169,14 +171,17 @@ export function AdminQuestionEditorPage({ onNavigate }: Props) {
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <label className="text-sm font-medium">Certification<select value={form.certification} onChange={event => updateField('certification', event.target.value)} className={`${inputClass} mt-2`}><option value="AZ-900">AZ-900</option><option value="CLF-C02">CLF-C02</option>{certifications.filter(item => !['AZ-900', 'CLF-C02'].includes(item)).map(item => <option key={item}>{item}</option>)}</select></label>
                 <label className="text-sm font-medium">Domain<input list="admin-domain-options" value={form.domain} onChange={event => updateField('domain', event.target.value)} className={`${inputClass} mt-2`} /><datalist id="admin-domain-options">{domains.map(item => <option key={item} value={item} />)}</datalist></label>
-                <label className="text-sm font-medium">Question type<select value={form.type} onChange={event => updateField('type', event.target.value)} className={`${inputClass} mt-2`}><option value="multiple_choice">Multiple choice</option><option value="yes_no">Yes or no</option><option value="drag_drop">Drag and drop</option><option value="hotspot">Hotspot</option><option value="self_grade">Self grade</option></select></label>
+                <label className="text-sm font-medium">Answer format<select value={form.type} onChange={event => { const nextType = event.target.value; const choice = ['single_choice', 'multiple_choice', 'yes_no'].includes(nextType); setForm(previous => ({ ...previous, type: nextType, options: choice ? (previous.options.length ? previous.options : EMPTY_QUESTION.options) : [], interactionData: choice ? null : previous.interactionData })); }} className={`${inputClass} mt-2`}><option value="single_choice">Single choice</option><option value="multiple_choice">Multiple choice</option><option value="yes_no">Yes or no</option><option value="unordered_selection">Unordered selection</option><option value="fixed_match">Fixed match</option><option value="ordering">Ordering</option><option value="dropdown">Dropdown</option><option value="yes_no_matrix">Yes/no matrix</option><option value="image_self_grade">Image self grade</option><option value="image_hotspot">Image hotspot</option></select></label>
                 <label className="text-sm font-medium">Content use<select value={form.contentType} onChange={event => updateField('contentType', event.target.value)} className={`${inputClass} mt-2`}><option value="practice_question">Practice question</option><option value="knowledge_check">Knowledge check</option><option value="mock_question">Mock assessment</option></select></label>
               </div>
               <label className="mt-5 block text-sm font-medium">Question text<textarea rows={7} value={form.prompt} onChange={event => updateField('prompt', event.target.value)} placeholder="Write a clear question or scenario" className={`${inputClass} mt-2 resize-y leading-6`} /></label>
               <label className="mt-5 block text-sm font-medium">Explanation<textarea rows={5} value={form.explanation ?? ''} onChange={event => updateField('explanation', event.target.value)} placeholder="Explain why the answer is correct" className={`${inputClass} mt-2 resize-y leading-6`} /></label>
+              {!['single_choice', 'multiple_choice', 'yes_no'].includes(form.type) && (
+                <label className="mt-5 block text-sm font-medium">Interaction JSON<textarea rows={10} value={form.interactionData ?? ''} onChange={event => updateField('interactionData', event.target.value || null)} placeholder='{"kind":"match","pool":[...],"prompts":[{"text":"...","correct":"..."}]}' spellCheck={false} className={`${inputClass} mt-2 resize-y font-mono text-xs leading-5`} /><span className="mt-2 block text-xs font-normal text-[var(--sp-muted)]">The API validates the structure and keeps correct values server-side.</span></label>
+              )}
             </section>
 
-            <section className="rounded-xl bg-white p-5 ring-1 ring-[var(--sp-border)] sm:p-6" aria-labelledby="answer-options-title">
+            {['single_choice', 'multiple_choice', 'yes_no'].includes(form.type) && <section className="rounded-xl bg-white p-5 ring-1 ring-[var(--sp-border)] sm:p-6" aria-labelledby="answer-options-title">
               <div className="flex items-center justify-between gap-4">
                 <div><h2 id="answer-options-title" className="text-base font-semibold text-[var(--sp-ink-strong)]">Answer options</h2><p className="mt-1 text-xs text-[var(--sp-muted)]">Mark every correct option. Multiple correct answers are supported.</p></div>
                 <button type="button" onClick={addOption} disabled={form.options.length >= 8} className="rounded-lg bg-[var(--sp-primary-100)] px-3 py-2 text-sm font-semibold text-[var(--sp-primary-800)] hover:bg-[var(--sp-primary-200)] disabled:opacity-40">Add option</button>
@@ -193,7 +198,7 @@ export function AdminQuestionEditorPage({ onNavigate }: Props) {
                   </div>
                 ))}
               </div>
-            </section>
+            </section>}
 
             <section className="rounded-xl bg-white p-5 ring-1 ring-[var(--sp-border)] sm:p-6" aria-labelledby="publishing-title">
               <h2 id="publishing-title" className="text-base font-semibold text-[var(--sp-ink-strong)]">Classification and publishing</h2>

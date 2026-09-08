@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../auth/useAuth';
 import { getServerProgress, saveServerProgress } from '../services/api';
+import type { InteractionSolution, InteractiveSubmission } from '../types/questionEngine';
 
 export interface QuestionResult {
   correct: boolean;
@@ -24,8 +25,9 @@ export interface ExamAttempt {
   domainScores: Record<string, { correct: number; total: number }>;
   // Per-question record for review (added later — older attempts may lack these)
   questionIds?: number[];
-  answers?: Record<number, string[] | 'correct' | 'incorrect'>;
+  answers?: Record<number, string[] | InteractiveSubmission | 'correct' | 'incorrect'>;
   correctAnswers?: Record<number, string[]>;
+  correctInteractions?: Record<number, InteractionSolution | null>;
   // Which cert this attempt belongs to (added when multi-cert was introduced)
   certification?: 'AZ-900' | 'CLF-C02' | 'CTFL';
 }

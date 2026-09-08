@@ -7,11 +7,6 @@ using SkillPath.Api.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 SQLitePCL.raw.SetProvider(new SQLitePCL.SQLite3Provider_sqlite3());
-var configuredConnection = builder.Configuration.GetConnectionString("SkillPath")
-    ?? throw new InvalidOperationException("Connection string 'SkillPath' is missing.");
-var sqliteConnection = new SqliteConnectionStringBuilder(configuredConnection);
-if (!Path.IsPathRooted(sqliteConnection.DataSource))
-    sqliteConnection.DataSource = Path.Combine(builder.Environment.ContentRootPath, sqliteConnection.DataSource);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -24,8 +19,17 @@ builder.Services.AddSwaggerGen(options =>
         Description = "Authentication, learning progress, question bank, practice, and exam APIs."
     });
 });
-builder.Services.AddDbContext<SkillPathDbContext>(options =>
-    options.UseSqlite(sqliteConnection.ConnectionString));
+builder.Services.AddDbContext<SkillPathDbContext>((services, options) =>
+{
+    var configuration = services.GetRequiredService<IConfiguration>();
+    var environment = services.GetRequiredService<IWebHostEnvironment>();
+    var configuredConnection = configuration.GetConnectionString("SkillPath")
+        ?? throw new InvalidOperationException("Connection string 'SkillPath' is missing.");
+    var sqliteConnection = new SqliteConnectionStringBuilder(configuredConnection);
+    if (!Path.IsPathRooted(sqliteConnection.DataSource))
+        sqliteConnection.DataSource = Path.Combine(environment.ContentRootPath, sqliteConnection.DataSource);
+    options.UseSqlite(sqliteConnection.ConnectionString);
+});
 builder.Services.AddScoped<DatabaseDataStore>();
 builder.Services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
 builder.Services
@@ -80,9 +84,12 @@ await using (var scope = app.Services.CreateAsyncScope())
             logger.LogInformation("Granted the admin role to the configured bootstrap account.");
         }
     }
-    await LegacyFileImporter.ImportAsync(db, app.Environment, logger);
-    await QuestionBankSeeder.SeedAsync(db, app.Environment, logger);
-    await IstqbCtflSeeder.SeedAsync(db, app.Environment, logger);
+    if (!builder.Configuration.GetValue<bool>("Testing:SkipSeed"))
+    {
+        await LegacyFileImporter.ImportAsync(db, app.Environment, logger);
+        await QuestionBankSeeder.SeedAsync(db, app.Environment, logger);
+        await IstqbCtflSeeder.SeedAsync(db, app.Environment, logger);
+    }
 }
 
 app.UseCors();

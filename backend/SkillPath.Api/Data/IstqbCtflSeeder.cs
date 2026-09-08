@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using SkillPath.Api.Models;
+using SkillPath.Api.Services;
 
 namespace SkillPath.Api.Data;
 
@@ -143,10 +144,13 @@ public static class IstqbCtflSeeder
                 existingQuestion.SourceAttribution = questionSeed.SourceAttribution ?? "ctfl_278";
                 existingQuestion.SourceReference = questionSeed.SourceReference;
                 existingQuestion.Status = questionSeed.Status ?? "published";
+                existingQuestion.QuestionType = "multiple_choice";
+                existingQuestion.InteractionType = questionSeed.Options.Count(option => option.IsCorrect) > 1
+                    ? QuestionInteractionTypes.MultipleChoice
+                    : QuestionInteractionTypes.SingleChoice;
                 if (string.IsNullOrWhiteSpace(existingQuestion.Explanation))
                     existingQuestion.Explanation = questionSeed.Explanation;
                 existingQuestion.TableData = SerializeOptional(questionSeed.TableData);
-                existingQuestion.UpdatedAt = DateTimeOffset.UtcNow;
                 if (existingCertificationMappings.TryGetValue(existingQuestion.Id, out var certificationMapping))
                     certificationMapping.DomainName = questionSeed.Domain;
                 if (existingModuleMappings.TryGetValue(existingQuestion.Id, out var moduleMapping) &&
@@ -171,6 +175,9 @@ public static class IstqbCtflSeeder
                 SourceReference = questionSeed.SourceReference,
                 LegacyId = questionSeed.LegacyId,
                 QuestionType = "multiple_choice",
+                InteractionType = questionSeed.Options.Count(option => option.IsCorrect) > 1
+                    ? QuestionInteractionTypes.MultipleChoice
+                    : QuestionInteractionTypes.SingleChoice,
                 ContentType = "mock_question",
                 Prompt = questionSeed.Prompt,
                 Explanation = questionSeed.Explanation,

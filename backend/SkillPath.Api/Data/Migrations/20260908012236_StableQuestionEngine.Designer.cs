@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SkillPath.Api.Data;
 
@@ -10,9 +11,11 @@ using SkillPath.Api.Data;
 namespace SkillPath.Api.Data.Migrations
 {
     [DbContext(typeof(SkillPathDbContext))]
-    partial class SkillPathDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260908012236_StableQuestionEngine")]
+    partial class StableQuestionEngine
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.10");

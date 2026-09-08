@@ -4,9 +4,8 @@ import { questionsForCert, domainsForCert } from '../data/questions';
 import type { Question, CertificationKey } from '../data/questions';
 import type { ProgressState } from '../hooks/useProgress';
 import { CTFL_QUESTION_IMAGES, QUESTION_IMAGES } from '../data/questionImages';
-import { INTERACTIVE_DATA } from '../data/interactiveData';
-import type { InteractiveData } from '../data/interactiveData';
 import { InteractiveExam } from '../components/InteractiveExam';
+import type { InteractiveSubmission } from '../types/questionEngine';
 import { AppHeader } from '../components/AppHeader';
 import { QuestionSourceBadge } from '../components/QuestionSourceBadge';
 import {
@@ -150,13 +149,13 @@ function QuestionCard({
   const hasOptions = optionKeys.length > 0;
 
   const sourceId = question.legacyId ?? question.id;
-  const interactive: InteractiveData | undefined = INTERACTIVE_DATA[sourceId];
+  const interactive = question.interaction;
   const [interactiveResult, setInteractiveResult] = useState<boolean | null>(null);
 
-  const isDragDrop = !interactive && question.type === 'drag_drop' && hasOptions;
-  const isMC = !interactive && !isDragDrop && hasOptions;
+  const isDragDrop = !interactive && question.type === 'unordered_selection' && hasOptions;
+  const isMC = !interactive && ['single_choice', 'multiple_choice', 'yes_no'].includes(question.type) && hasOptions;
 
-  const hotspotBoxes = (!interactive && question.type === 'hotspot')
+  const hotspotBoxes = (!interactive && question.type === 'yes_no_matrix')
     ? parseBoxes(answer?.explanation ?? question.answer_text ?? '')
     : [];
   const isInteractiveHotspot = hotspotBoxes.length > 0 && hotspotBoxes.every(b => b.answer === 'Yes' || b.answer === 'No');
@@ -166,6 +165,9 @@ function QuestionCard({
     : QUESTION_IMAGES[sourceId];
   const answerText = answer?.explanation ?? question.answer_text;
   const correctAnswers = answer?.correctAnswer ?? [];
+  const interactionAnswers = answer?.correctInteraction && 'answers' in answer.correctInteraction
+    ? answer.correctInteraction.answers
+    : [];
   const rawCleaned = answerText
     ? /^:\s*References?:/i.test(answerText)
       ? ''
@@ -293,6 +295,22 @@ function QuestionCard({
     }
   }
 
+  async function handleInteractiveSubmit(submission: InteractiveSubmission) {
+    if (answerLoading || interactiveResult !== null) return;
+    setAnswerLoading(true);
+    setAnswerError(null);
+    try {
+      const result = await submitQuestionAnswer(question.id, [], submission);
+      setAnswer(result);
+      setInteractiveResult(result.correct);
+      setShowAnswer(true);
+    } catch (error) {
+      setAnswerError(error instanceof Error ? error.message : 'Unable to check this answer.');
+    } finally {
+      setAnswerLoading(false);
+    }
+  }
+
   // ── AI ────────────────────────────────────────────────────────────────────────
   async function fetchAI() {
     if (!apiKey) { setAiText('Add your Claude API key in Settings.'); setShowAi(true); return; }
@@ -305,19 +323,22 @@ function QuestionCard({
 
       // For hotspot/match/yesno/dropdown: include structured prompts from interactive data
       let interactiveContext = '';
+      const solution = answer?.correctInteraction && 'answers' in answer.correctInteraction
+        ? answer.correctInteraction.answers
+        : [];
       if (interactive && interactive.kind !== 'self_grade' && interactive.kind !== 'click') {
         if (interactive.kind === 'yesno') {
           interactiveContext = '\nStatements (Yes/No):\n' +
-            interactive.prompts.map((p, i) => `${i + 1}. [${p.correct}] ${p.text}`).join('\n');
+            interactive.prompts.map((p, i) => `${i + 1}. [${solution[i] ?? 'Answer unavailable'}] ${p.text}`).join('\n');
         } else if (interactive.kind === 'dropdown') {
           interactiveContext = '\nStatements (fill-in-the-blank):\n' +
             interactive.prompts.map((p, i) =>
-              `${i + 1}. ${p.text}\n   Options: ${(p.options ?? []).join(' | ')}\n   Correct: ${p.correct}`
+              `${i + 1}. ${p.text}\n   Options: ${(p.options ?? []).join(' | ')}\n   Correct: ${solution[i] ?? 'Answer unavailable'}`
             ).join('\n');
         } else if (interactive.kind === 'match') {
           interactiveContext = '\nDrag-drop matching:\n' +
             `Pool: ${interactive.pool.join(', ')}\n` +
-            interactive.prompts.map((p, i) => `${i + 1}. "${p.text}" → ${p.correct}`).join('\n');
+            interactive.prompts.map((p, i) => `${i + 1}. "${p.text}" → ${solution[i] ?? 'Answer unavailable'}`).join('\n');
         }
       }
 
@@ -400,7 +421,7 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
           {question.domain}
         </span>
         <QuestionSourceBadge references={question.sourceReferences} />
-        {question.type !== 'multiple_choice' && question.type !== 'yes_no' && (
+        {!['single_choice', 'multiple_choice', 'yes_no'].includes(question.type) && (
           <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 font-medium capitalize">
             {question.type.replace('_', ' ')}
           </span>
@@ -503,11 +524,12 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
         {interactive && (
           <InteractiveExam
             data={interactive}
+            interactionType={question.type}
             imageUrl={qImages?.question_img}
             checked={interactiveResult !== null}
+            solution={answer?.correctInteraction ?? undefined}
             showAnswer={showAnswer}
-            onSubmit={(correct) => setInteractiveResult(correct)}
-            questionText={question.question}
+            onSubmit={submission => void handleInteractiveSubmit(submission)}
           />
         )}
 
@@ -768,10 +790,10 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
                       if (existingBox && existingBox.detail.trim()) return existingBox;
                       return {
                         n,
-                        answer: existingBox?.answer || (isYesNo ? p.correct : ''),
+                        answer: existingBox?.answer || (isYesNo ? interactionAnswers[i] ?? '' : ''),
                         // For yesno: don't repeat statement when no real explanation exists (user can see the statement above)
                         // For dropdown: always show the prompt → correct since it's the actual answer
-                        detail: isYesNo ? '' : `${p.text} → ${p.correct}`,
+                        detail: isYesNo ? '' : `${p.text} → ${interactionAnswers[i] ?? ''}`,
                       };
                     });
                   }
@@ -788,7 +810,7 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
                       <p className="text-sm text-gray-800 leading-relaxed">
                         <span className="text-gray-600">{p.text}</span>
                         {' → '}
-                        <span className="font-semibold text-green-700">{p.correct}</span>
+                        <span className="font-semibold text-green-700">{interactionAnswers[0] ?? ''}</span>
                       </p>
                       {cleanAnswerText && !cleanAnswerText.match(/^Box\s+\d+/i) && (
                         <p className="text-xs text-gray-600 leading-relaxed">{cleanAnswerText}</p>

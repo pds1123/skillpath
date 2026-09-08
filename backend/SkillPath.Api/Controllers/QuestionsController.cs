@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using SkillPath.Api.Contracts;
 using SkillPath.Api.Data;
 using SkillPath.Api.Models;
+using SkillPath.Api.Services;
 
 namespace SkillPath.Api.Controllers;
 
@@ -90,28 +91,17 @@ public sealed class QuestionsController(SkillPathDbContext db) : ControllerBase
             .Where(option => option.QuestionId == id)
             .OrderBy(option => option.SortOrder)
             .ToListAsync();
-        var selectedKeys = (request.SelectedAnswers ?? [])
-            .Select(value => value.Trim().ToUpperInvariant())
-            .Where(value => value.Length > 0)
-            .Distinct()
-            .Order()
-            .ToList();
-        var validKeys = options.Select(option => option.OptionKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        if (selectedKeys.Any(key => !validKeys.Contains(key)))
-            return BadRequest(new ApiError("One or more selected answers are invalid."));
-
-        var correctKeys = options.Where(option => option.IsCorrect).Select(option => option.OptionKey).Order().ToList();
-        bool correct;
-        if (request.SelfGrade is not null)
-        {
-            if (question.Mode == "quiz") return BadRequest(new ApiError("Quiz questions must be graded by selected answers."));
-            correct = request.SelfGrade.Value;
-        }
-        else
-        {
-            if (selectedKeys.Count == 0) return BadRequest(new ApiError("Select at least one answer."));
-            correct = selectedKeys.SequenceEqual(correctKeys, StringComparer.OrdinalIgnoreCase);
-        }
+        if (!QuestionEngine.TryGrade(
+                question,
+                options,
+                request.SelectedAnswers,
+                request.SelfGrade,
+                request.InteractionResponse,
+                false,
+                out var grade,
+                out var gradeError))
+            return BadRequest(new ApiError(gradeError ?? "The answer could not be graded."));
+        var graded = grade!;
 
         Guid? attemptId = null;
         var userId = GetUserId();
@@ -126,18 +116,19 @@ public sealed class QuestionsController(SkillPathDbContext db) : ControllerBase
                 UserId = userId.Value,
                 QuestionId = id,
                 PracticeSessionId = request.PracticeSessionId,
-                IsCorrect = correct,
-                ResponseData = request.SelfGrade is null ? null : JsonSerializer.Serialize(new { selfGrade = request.SelfGrade }),
+                IsCorrect = graded.Correct,
+                ResponseData = graded.ResponseData,
                 DurationSeconds = request.DurationSeconds,
             };
             db.QuestionAttempts.Add(attempt);
+            var selectedKeys = request.SelectedAnswers ?? [];
             foreach (var option in options.Where(option => selectedKeys.Contains(option.OptionKey, StringComparer.OrdinalIgnoreCase)))
                 db.QuestionAttemptSelections.Add(new QuestionAttemptSelection { QuestionAttemptId = attempt.Id, QuestionOptionId = option.Id });
             await db.SaveChangesAsync();
             attemptId = attempt.Id;
         }
 
-        return Ok(new SubmitAnswerResponse(attemptId, correct, correctKeys, question.Explanation));
+        return Ok(new SubmitAnswerResponse(attemptId, graded.Correct, graded.CorrectAnswer, graded.CorrectInteraction, question.Explanation));
     }
 
     [HttpPost("{id:long}/reveal")]
@@ -153,7 +144,7 @@ public sealed class QuestionsController(SkillPathDbContext db) : ControllerBase
             .Select(option => option.OptionKey)
             .ToListAsync();
 
-        return Ok(new RevealAnswerResponse(correctKeys, question.Explanation));
+        return Ok(new RevealAnswerResponse(correctKeys, QuestionEngine.CorrectInteraction(question), question.Explanation));
     }
 
     private async Task<List<QuestionResponse>> MapQuestions(IReadOnlyList<(Question Question, string Certification, string Domain)> rows)
@@ -173,14 +164,15 @@ public sealed class QuestionsController(SkillPathDbContext db) : ControllerBase
                 row.Question.Id,
                 row.Question.LegacyId,
                 row.Certification,
-                row.Question.QuestionType,
+                row.Question.InteractionType,
                 row.Question.Prompt,
                 questionOptions.ToDictionary(option => option.OptionKey, option => option.OptionText),
                 row.Domain,
                 row.Question.Mode,
                 questionOptions.Count(option => option.IsCorrect) > 1,
                 includeSourceReferences ? ParseSourceReferences(row.Question.SourceReference) : null,
-                ParseOptionalJson(row.Question.TableData));
+                ParseOptionalJson(row.Question.TableData),
+                QuestionEngine.PublicDefinition(row.Question.InteractionData));
         }).ToList();
     }
 

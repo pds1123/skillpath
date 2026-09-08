@@ -41,6 +41,7 @@ public sealed record AdminQuestionDetailResponse(
     string Status,
     string Source,
     string? SourceReference,
+    string? InteractionData,
     IReadOnlyList<AdminQuestionOptionResponse> Options,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
@@ -54,6 +55,7 @@ public sealed record AdminQuestionUpsertRequest(
     string ContentType,
     string Prompt,
     string? Explanation,
+    string? InteractionData,
     string Mode,
     string Difficulty,
     string Status,

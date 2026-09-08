@@ -62,15 +62,34 @@ const azureModules = await readExport(path.join(root, 'src/data/curriculum.ts'),
 const awsModules = await readExport(path.join(root, 'src/data/curriculum.ts'), 'AWS_MODULES');
 const studyContent = await readExport(path.join(root, 'src/data/studyContent.ts'), 'STUDY_CONTENT');
 
-const questions = [...azureQuestions, ...awsQuestions].map(question => ({
+function interactionType(question, data) {
+  if (data?.kind === 'dropdown') return 'dropdown';
+  if (data?.kind === 'yesno') return 'yes_no_matrix';
+  if (data?.kind === 'self_grade') return 'image_self_grade';
+  if (data?.kind === 'click') return 'image_hotspot';
+  if (data?.kind === 'match') {
+    if (/arrange|in which order|from the least|from the highest/i.test(question.question)) return 'ordering';
+    const labels = data.prompts?.map(prompt => prompt.text) ?? [];
+    if (labels.length > 1 && labels.every(label => label === labels[0])) return 'unordered_selection';
+    return 'fixed_match';
+  }
+  if (question.type === 'yes_no') return 'yes_no';
+  if ((question.correct_answer ?? []).length > 1) return 'multiple_choice';
+  return 'single_choice';
+}
+
+const questions = [...azureQuestions, ...awsQuestions].map(question => {
+  const interactionData = question.certification === 'AZ-900' ? interactive[String(question.id)] ?? null : null;
+  return ({
   legacyId: question.id,
   certification: question.certification,
   sourceKey: `${question.certification}:${question.id}`,
   questionType: question.type,
+  interactionType: interactionType(question, interactionData),
   contentType: question.content_type ?? 'practice_question',
   prompt: question.question,
   explanation: question.answer_text || null,
-  interactionData: question.certification === 'AZ-900' ? interactive[String(question.id)] ?? null : null,
+  interactionData,
   tableData: question.table ?? null,
   mode: question.mode,
   difficulty: question.difficulty ?? 'beginner',
@@ -82,7 +101,8 @@ const questions = [...azureQuestions, ...awsQuestions].map(question => ({
     sortOrder: index + 1,
     isCorrect: (question.correct_answer ?? []).includes(key),
   })),
-}));
+  });
+});
 
 const paths = [
   {

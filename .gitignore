@@ -9,6 +9,9 @@ backend/database/skillpath-data-relations.svg
 # Build output
 dist
 dist-ssr
+coverage
+playwright-report
+test-results
 
 # Logs
 *.log

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using SkillPath.Api.Models;
+using SkillPath.Api.Services;
 
 namespace SkillPath.Api.Data;
 
@@ -122,6 +123,11 @@ public static class QuestionBankSeeder
                     SourceAttribution = "catalog",
                     LegacyId = questionSeed.LegacyId,
                     QuestionType = questionSeed.QuestionType,
+                    InteractionType = questionSeed.InteractionType ?? QuestionInteractionTypes.Infer(
+                        questionSeed.QuestionType,
+                        questionSeed.InteractionData,
+                        questionSeed.Options.Count(option => option.IsCorrect),
+                        questionSeed.Prompt),
                     ContentType = questionSeed.ContentType,
                     Prompt = questionSeed.Prompt,
                     Explanation = questionSeed.Explanation,
@@ -205,6 +211,7 @@ public static class QuestionBankSeeder
         string Certification,
         string SourceKey,
         string QuestionType,
+        string? InteractionType,
         string ContentType,
         string Prompt,
         string? Explanation,

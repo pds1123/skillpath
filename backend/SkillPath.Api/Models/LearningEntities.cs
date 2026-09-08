@@ -90,6 +90,7 @@ public sealed class Question
     public string? SourceReference { get; set; }
     public int LegacyId { get; set; }
     public required string QuestionType { get; set; }
+    public required string InteractionType { get; set; }
     public string ContentType { get; set; } = "practice_question";
     public required string Prompt { get; set; }
     public string? Explanation { get; set; }

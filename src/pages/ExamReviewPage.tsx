@@ -1,5 +1,4 @@
 import { questionsForCert } from '../data/questions';
-import { INTERACTIVE_DATA } from '../data/interactiveData';
 import type { ProgressState } from '../hooks/useProgress';
 import type { Question } from '../data/questions';
 import { AppHeader } from '../components/AppHeader';
@@ -36,16 +35,30 @@ export function ExamReviewPage({ progress, attemptId, onNavigate }: Props) {
     .filter((q): q is Question => !!q);
   const answers = attempt.answers ?? {};
   const correctAnswers = attempt.correctAnswers ?? {};
+  const correctInteractions = attempt.correctInteractions ?? {};
   const pct = Math.round((attempt.score / attempt.total) * 100);
   const pass = pct >= 70;
 
   function isCorrectAnswer(q: Question, idx: number): boolean {
     const ans = answers[idx];
-    if (ans === 'correct') return true;
-    if (ans === 'incorrect') return false;
     const correct = correctAnswers[q.id] ?? [];
     if (Array.isArray(ans) && correct.length > 0) {
       return ans.length === correct.length && ans.every(a => correct.includes(a));
+    }
+    if (ans === 'correct' || ans === 'incorrect') return ans === 'correct';
+    if (ans && typeof ans === 'object' && !Array.isArray(ans) && 'selfGrade' in ans) return ans.selfGrade;
+    if (ans && typeof ans === 'object' && !Array.isArray(ans) && 'interactionResponse' in ans) {
+      const solution = correctInteractions[q.id];
+      const response = ans.interactionResponse;
+      if ('answers' in response && solution && 'answers' in solution) {
+        const submitted = q.type === 'unordered_selection' ? [...response.answers].sort() : response.answers;
+        const expected = q.type === 'unordered_selection' ? [...solution.answers].sort() : solution.answers;
+        return submitted.length === expected.length && submitted.every((value, index) => value === expected[index]);
+      }
+      if ('x' in response && solution && 'region' in solution) {
+        const { x, y, w, h } = solution.region;
+        return response.x >= x && response.x <= x + w && response.y >= y && response.y <= y + h;
+      }
     }
     return false;
   }
@@ -53,29 +66,29 @@ export function ExamReviewPage({ progress, attemptId, onNavigate }: Props) {
   function renderUserAnswer(q: Question, idx: number) {
     const ans = answers[idx];
     if (ans === 'correct' || ans === 'incorrect') {
-      const inter = INTERACTIVE_DATA[q.legacyId ?? q.id];
+      return <span className="text-xs text-gray-700">Legacy result: {ans}</span>;
+    }
+    if (ans && typeof ans === 'object' && !Array.isArray(ans) && 'selfGrade' in ans) {
+      return <span className="text-xs text-gray-700">Self-graded: {ans.selfGrade ? 'correct' : 'incorrect'}</span>;
+    }
+    if (ans && typeof ans === 'object' && !Array.isArray(ans) && 'interactionResponse' in ans) {
+      const inter = q.interaction;
       if (!inter) return <span className="text-gray-400 italic">No answer</span>;
-      // Show the prompt structure with correct labels — graded yes/no/dropdown/match
-      if (inter.kind === 'yesno' || inter.kind === 'dropdown' || inter.kind === 'match') {
+      if ('answers' in ans.interactionResponse && (inter.kind === 'yesno' || inter.kind === 'dropdown' || inter.kind === 'match')) {
+        const submittedAnswers = ans.interactionResponse.answers;
         return (
           <div className="space-y-1">
             {inter.prompts.map((p, i) => (
               <p key={i} className="text-xs text-gray-700">
                 <span className="text-gray-500">{p.text}:</span>{' '}
-                <span className="font-semibold text-green-700">{p.correct}</span>
+                <span className="font-semibold text-[var(--sp-primary-800)]">{submittedAnswers[i] ?? '—'}</span>
               </p>
             ))}
-            <p className="text-[11px] text-gray-400 italic mt-1">
-              ({ans === 'correct' ? 'You answered correctly' : 'You answered incorrectly — exact picks not recorded'})
-            </p>
           </div>
         );
       }
-      if (inter.kind === 'click') {
-        return <span className="text-xs text-gray-700">Click hotspot: {inter.label} (self-graded)</span>;
-      }
-      if (inter.kind === 'self_grade') {
-        return <span className="text-xs text-gray-700">Self-graded: {ans === 'correct' ? 'correct' : 'wrong'}</span>;
+      if ('x' in ans.interactionResponse && inter.kind === 'click') {
+        return <span className="text-xs text-gray-700">Selected point: {Math.round(ans.interactionResponse.x * 100)}%, {Math.round(ans.interactionResponse.y * 100)}%</span>;
       }
       return null;
     }
@@ -95,14 +108,15 @@ export function ExamReviewPage({ progress, attemptId, onNavigate }: Props) {
   }
 
   function renderCorrectAnswer(q: Question) {
-    const inter = INTERACTIVE_DATA[q.legacyId ?? q.id];
-    if (inter && (inter.kind === 'yesno' || inter.kind === 'dropdown' || inter.kind === 'match')) {
+    const inter = q.interaction;
+    const solution = correctInteractions[q.id];
+    if (inter && solution && 'answers' in solution && (inter.kind === 'yesno' || inter.kind === 'dropdown' || inter.kind === 'match')) {
       return (
         <div className="space-y-1">
           {inter.prompts.map((p, i) => (
             <p key={i} className="text-xs text-gray-700">
               <span className="text-gray-500">{p.text}:</span>{' '}
-              <span className="font-semibold text-green-700">{p.correct}</span>
+              <span className="font-semibold text-green-700">{solution.answers[i] ?? '—'}</span>
             </p>
           ))}
         </div>

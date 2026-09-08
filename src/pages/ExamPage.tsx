@@ -1,13 +1,13 @@
 import { useState, useMemo } from 'react';
 import { CERTIFICATIONS, quizQuestionsForCert } from '../data/questions';
 import type { Question, CertificationKey } from '../data/questions';
-import { INTERACTIVE_DATA } from '../data/interactiveData';
 import { CTFL_QUESTION_IMAGES, QUESTION_IMAGES } from '../data/questionImages';
 import { Timer } from '../components/Timer';
 import { InteractiveExam } from '../components/InteractiveExam';
 import { QuestionSourceBadge } from '../components/QuestionSourceBadge';
 import type { ExamAttempt } from '../hooks/useProgress';
 import { gradeExam, type ExamGrade } from '../services/api';
+import type { InteractiveSubmission } from '../types/questionEngine';
 
 interface Props {
   onNavigate: (page: string) => void;
@@ -24,9 +24,7 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-// MC answer = letter array (e.g., ["A", "C"])
-// Interactive answer = "correct" | "incorrect" sentinel — graded by InteractiveExam
-type Answer = string[] | 'correct' | 'incorrect';
+type Answer = string[] | InteractiveSubmission;
 
 export function ExamPage({ onNavigate, onExamComplete, activeCert }: Props) {
   const [startTime] = useState(() => Date.now());
@@ -63,14 +61,14 @@ export function ExamPage({ onNavigate, onExamComplete, activeCert }: Props) {
 
   const question: Question = questions[currentIndex];
   const sourceId = question.legacyId ?? question.id;
-  const interactive = INTERACTIVE_DATA[sourceId];
+  const interactive = question.interaction;
   const qImages = question.certification === 'CTFL'
     ? CTFL_QUESTION_IMAGES[sourceId]
     : QUESTION_IMAGES[sourceId];
   const hasInteractive = !!interactive && interactive.kind !== 'click' && interactive.kind !== 'self_grade';
   const isClick = interactive?.kind === 'click';
   const isSelfGrade = interactive?.kind === 'self_grade';
-  const isMC = !hasInteractive && !isClick && !isSelfGrade && Object.keys(question.options).length > 0;
+  const isMC = !hasInteractive && !isClick && !isSelfGrade && ['single_choice', 'multiple_choice', 'yes_no'].includes(question.type) && Object.keys(question.options).length > 0;
   const isMulti = isMC && Boolean(question.multipleSelect);
   const isAnswered = currentIndex in answers;
   const totalAnswered = Object.keys(answers).length;
@@ -95,8 +93,8 @@ export function ExamPage({ onNavigate, onExamComplete, activeCert }: Props) {
     }
   }
 
-  function recordInteractiveResult(correct: boolean) {
-    setAnswers(prev => ({ ...prev, [currentIndex]: correct ? 'correct' : 'incorrect' }));
+  function recordInteractiveResult(submission: InteractiveSubmission) {
+    setAnswers(prev => ({ ...prev, [currentIndex]: submission }));
   }
 
   function goTo(index: number) {
@@ -124,8 +122,7 @@ export function ExamPage({ onNavigate, onExamComplete, activeCert }: Props) {
           const answer = finalAnswers[index];
           return {
             questionId: item.id,
-            selectedAnswers: Array.isArray(answer) ? answer : [],
-            ...(answer === 'correct' ? { selfGrade: true } : answer === 'incorrect' ? { selfGrade: false } : {}),
+            ...(Array.isArray(answer) ? { selectedAnswers: answer } : answer ?? { selectedAnswers: [] }),
           };
         }),
       });
@@ -139,6 +136,7 @@ export function ExamPage({ onNavigate, onExamComplete, activeCert }: Props) {
         questionIds: questions.map(item => item.id),
         answers: Object.fromEntries(Object.entries(finalAnswers).map(([key, value]) => [Number(key), value])),
         correctAnswers: Object.fromEntries(result.results.map(item => [item.questionId, item.correctAnswer])),
+        correctInteractions: Object.fromEntries(result.results.map(item => [item.questionId, item.correctInteraction])),
         certification: activeCert,
       };
       onExamComplete(attempt);
@@ -355,11 +353,11 @@ export function ExamPage({ onNavigate, onExamComplete, activeCert }: Props) {
             <InteractiveExam
               key={question.id}
               data={interactive}
+              interactionType={question.type}
               imageUrl={qImages?.question_img}
               checked={false}
               showAnswer={false}
               onSubmit={recordInteractiveResult}
-              questionText={question.question}
               hideSubmit
             />
           )}

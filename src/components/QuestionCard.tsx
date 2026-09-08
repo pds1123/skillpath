@@ -2,6 +2,9 @@ import { useState } from 'react';
 import type { Question } from '../data/questions';
 import { submitQuestionAnswer, type AnswerGrade } from '../services/api';
 import { QuestionSourceBadge } from './QuestionSourceBadge';
+import { InteractiveExam } from './InteractiveExam';
+import { CTFL_QUESTION_IMAGES, QUESTION_IMAGES } from '../data/questionImages';
+import type { InteractiveSubmission } from '../types/questionEngine';
 
 interface Props {
   question: Question;
@@ -22,6 +25,9 @@ export function QuestionCard({ question, questionNumber, totalQuestions, onAnswe
 
   const isMulti = question.multipleSelect ?? false;
   const mode = question.mode;
+  const interactive = question.interaction;
+  const imageSet = (question.certification === 'CTFL' ? CTFL_QUESTION_IMAGES : QUESTION_IMAGES)[question.legacyId ?? question.id];
+  const questionImage = imageSet?.question_img;
 
   function toggleOption(letter: string) {
     if (submitted) return;
@@ -61,6 +67,22 @@ export function QuestionCard({ question, questionNumber, totalQuestions, onAnswe
       onAnswer([], value === 'correct');
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Unable to save this answer.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleInteractive(submission: InteractiveSubmission) {
+    if (submitted || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const result = await submitQuestionAnswer(question.id, [], submission);
+      setGrade(result);
+      setSubmitted(true);
+      onAnswer([], result.correct);
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : 'Unable to check this answer.');
     } finally {
       setSubmitting(false);
     }
@@ -132,8 +154,37 @@ export function QuestionCard({ question, questionNumber, totalQuestions, onAnswe
           </div>
         </div>
 
-        {/* QUIZ MODE: interactive options */}
-        {mode === 'quiz' && (
+        {questionImage && (!interactive || interactive.kind === 'self_grade') && (
+          <img
+            src={questionImage}
+            alt="Question reference"
+            className="mb-4 max-h-[28rem] max-w-full rounded-lg border border-[var(--sp-border)] object-contain"
+          />
+        )}
+
+        {interactive && interactive.kind !== 'self_grade' && (
+          <>
+            <InteractiveExam
+              key={question.id}
+              data={interactive}
+              interactionType={question.type}
+              imageUrl={questionImage}
+              checked={submitted}
+              solution={grade?.correctInteraction ?? undefined}
+              showAnswer={submitted}
+              onSubmit={submission => void handleInteractive(submission)}
+            />
+            {submitted && (
+              <div className={`mt-4 rounded-lg border p-3 text-sm font-semibold ${grade?.correct ? 'border-green-200 bg-green-50 text-green-800' : 'border-red-200 bg-red-50 text-red-800'}`}>
+                {grade?.correct ? 'Correct' : 'Some answers are incorrect'}
+              </div>
+            )}
+
+          </>
+        )}
+
+        {/* QUIZ MODE: choice options */}
+        {mode === 'quiz' && !interactive && (
           <>
             <div className="flex flex-col gap-2">
               {Object.entries(question.options).map(([letter, text]) => (
@@ -190,7 +241,7 @@ export function QuestionCard({ question, questionNumber, totalQuestions, onAnswe
         )}
 
         {/* REVEAL MODE: show/hide answer + self grade */}
-        {mode === 'reveal' && (
+        {mode === 'reveal' && (!interactive || interactive.kind === 'self_grade') && (
           <>
             {!revealed ? (
               <button
@@ -215,6 +266,13 @@ export function QuestionCard({ question, questionNumber, totalQuestions, onAnswe
                   )}
                   {question.answer_text && (
                     <p className="leading-relaxed">{question.answer_text}</p>
+                  )}
+                  {imageSet?.answer_img && (
+                    <img
+                      src={imageSet.answer_img}
+                      alt="Answer reference"
+                      className="mt-3 max-h-[28rem] max-w-full rounded-lg border border-amber-200 object-contain"
+                    />
                   )}
                 </div>
 

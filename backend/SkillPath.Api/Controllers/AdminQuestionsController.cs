@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SkillPath.Api.Contracts;
 using SkillPath.Api.Data;
 using SkillPath.Api.Models;
+using SkillPath.Api.Services;
 
 namespace SkillPath.Api.Controllers;
 
@@ -12,7 +13,6 @@ namespace SkillPath.Api.Controllers;
 [Route("api/admin/questions")]
 public sealed class AdminQuestionsController(SkillPathDbContext db) : ControllerBase
 {
-    private static readonly HashSet<string> AllowedTypes = ["multiple_choice", "yes_no", "drag_drop", "hotspot", "self_grade"];
     private static readonly HashSet<string> AllowedContentTypes = ["knowledge_check", "practice_question", "mock_question"];
     private static readonly HashSet<string> AllowedModes = ["quiz", "reveal", "read"];
     private static readonly HashSet<string> AllowedDifficulties = ["beginner", "intermediate", "advanced"];
@@ -68,7 +68,7 @@ public sealed class AdminQuestionsController(SkillPathDbContext db) : Controller
                 item.Question.LegacyId,
                 item.Certification,
                 item.Domain,
-                item.Question.QuestionType,
+                item.Question.InteractionType,
                 item.Question.ContentType,
                 item.Question.Prompt,
                 item.Question.Difficulty,
@@ -105,10 +105,12 @@ public sealed class AdminQuestionsController(SkillPathDbContext db) : Controller
             SourceAttribution = "admin",
             SourceReference = $"admin.{nextLegacyId}",
             LegacyId = nextLegacyId,
-            QuestionType = Normalize(request.Type),
+            QuestionType = QuestionInteractionTypes.ToLegacyQuestionType(Normalize(request.Type)),
+            InteractionType = Normalize(request.Type),
             ContentType = Normalize(request.ContentType),
             Prompt = request.Prompt.Trim(),
             Explanation = NullIfWhiteSpace(request.Explanation),
+            InteractionData = NullIfWhiteSpace(request.InteractionData),
             Mode = Normalize(request.Mode),
             Difficulty = Normalize(request.Difficulty),
             Status = Normalize(request.Status),
@@ -142,10 +144,12 @@ public sealed class AdminQuestionsController(SkillPathDbContext db) : Controller
         if (question is null) return NotFound(new ApiError("Question was not found."));
 
         await using var transaction = await db.Database.BeginTransactionAsync();
-        question.QuestionType = Normalize(request.Type);
+        question.QuestionType = QuestionInteractionTypes.ToLegacyQuestionType(Normalize(request.Type));
+        question.InteractionType = Normalize(request.Type);
         question.ContentType = Normalize(request.ContentType);
         question.Prompt = request.Prompt.Trim();
         question.Explanation = NullIfWhiteSpace(request.Explanation);
+        question.InteractionData = NullIfWhiteSpace(request.InteractionData);
         question.Mode = Normalize(request.Mode);
         question.Difficulty = Normalize(request.Difficulty);
         question.Status = Normalize(request.Status);
@@ -203,7 +207,7 @@ public sealed class AdminQuestionsController(SkillPathDbContext db) : Controller
             row.Question.LegacyId,
             row.Certification,
             row.Domain,
-            row.Question.QuestionType,
+            row.Question.InteractionType,
             row.Question.ContentType,
             row.Question.Prompt,
             row.Question.Explanation,
@@ -212,6 +216,7 @@ public sealed class AdminQuestionsController(SkillPathDbContext db) : Controller
             row.Question.Status,
             row.Question.SourceAttribution,
             row.Question.SourceReference,
+            row.Question.InteractionData,
             options,
             row.Question.CreatedAt,
             row.Question.UpdatedAt);
@@ -222,21 +227,31 @@ public sealed class AdminQuestionsController(SkillPathDbContext db) : Controller
         var type = Normalize(request.Type);
         if (request.Prompt.Trim().Length is < 10 or > 10000) return "Question text must be between 10 and 10,000 characters.";
         if (request.Domain.Trim().Length is < 2 or > 160) return "Domain must be between 2 and 160 characters.";
-        if (!AllowedTypes.Contains(type)) return "Question type is invalid.";
+        if (!QuestionInteractionTypes.All.Contains(type)) return "Answer format is invalid.";
         if (!AllowedContentTypes.Contains(Normalize(request.ContentType))) return "Content type is invalid.";
         if (!AllowedModes.Contains(Normalize(request.Mode))) return "Question mode is invalid.";
         if (!AllowedDifficulties.Contains(Normalize(request.Difficulty))) return "Difficulty is invalid.";
         if (!AllowedStatuses.Contains(Normalize(request.Status))) return "Status is invalid.";
+        if (type == QuestionInteractionTypes.ImageSelfGrade && Normalize(request.Mode) == "quiz")
+            return "Image self-grade questions must use reveal or read mode.";
         if (request.Options.Count > 8) return "A question can have no more than eight options.";
         if (request.Options.Any(option => string.IsNullOrWhiteSpace(option.Key) || option.Key.Trim().Length > 20 || string.IsNullOrWhiteSpace(option.Text)))
             return "Every answer option needs a key and text.";
         if (request.Options.Select(option => option.Key.Trim().ToUpperInvariant()).Distinct().Count() != request.Options.Count)
             return "Answer option keys must be unique.";
-        if (type is "multiple_choice" or "yes_no")
+        var interactionError = QuestionEngine.ValidateDefinition(type, request.InteractionData);
+        if (interactionError is not null) return interactionError;
+        if (QuestionInteractionTypes.UsesChoiceOptions(type))
         {
             if (request.Options.Count < 2) return "This question type needs at least two answer options.";
             if (!request.Options.Any(option => option.IsCorrect)) return "Select at least one correct answer.";
+            var correctCount = request.Options.Count(option => option.IsCorrect);
+            if (type is QuestionInteractionTypes.SingleChoice or QuestionInteractionTypes.YesNo && correctCount != 1)
+                return "This answer format requires exactly one correct option.";
+            if (type == QuestionInteractionTypes.MultipleChoice && correctCount < 2)
+                return "Multiple choice requires at least two correct options.";
         }
+        else if (request.Options.Count > 0) return "Interactive questions store their answer choices in interaction JSON, not answer options.";
         return null;
     }
 

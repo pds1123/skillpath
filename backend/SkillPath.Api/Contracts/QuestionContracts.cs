@@ -16,7 +16,8 @@ public sealed record QuestionResponse(
     string Mode,
     bool MultipleSelect,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<string>? SourceReferences,
-    JsonElement? Table);
+    JsonElement? Table,
+    JsonElement? Interaction);
 
 public sealed record QuestionBankSummaryResponse(
     string Certification,
@@ -26,6 +27,7 @@ public sealed record QuestionBankSummaryResponse(
 public sealed record SubmitAnswerRequest(
     IReadOnlyList<string>? SelectedAnswers,
     bool? SelfGrade,
+    JsonElement? InteractionResponse,
     Guid? PracticeSessionId,
     int? DurationSeconds);
 
@@ -33,10 +35,12 @@ public sealed record SubmitAnswerResponse(
     Guid? AttemptId,
     bool Correct,
     IReadOnlyList<string> CorrectAnswer,
+    JsonElement? CorrectInteraction,
     string? Explanation);
 
 public sealed record RevealAnswerResponse(
     IReadOnlyList<string> CorrectAnswer,
+    JsonElement? CorrectInteraction,
     string? Explanation);
 
 public sealed record GradeExamRequest(
@@ -44,7 +48,11 @@ public sealed record GradeExamRequest(
     int DurationSeconds,
     IReadOnlyList<ExamAnswerRequest> Answers);
 
-public sealed record ExamAnswerRequest(long QuestionId, IReadOnlyList<string> SelectedAnswers, bool? SelfGrade);
+public sealed record ExamAnswerRequest(
+    long QuestionId,
+    IReadOnlyList<string>? SelectedAnswers,
+    bool? SelfGrade,
+    JsonElement? InteractionResponse);
 
 public sealed record GradeExamResponse(
     Guid? AttemptId,
@@ -59,4 +67,5 @@ public sealed record ExamQuestionResultResponse(
     long QuestionId,
     bool Correct,
     IReadOnlyList<string> CorrectAnswer,
+    JsonElement? CorrectInteraction,
     string? Explanation);

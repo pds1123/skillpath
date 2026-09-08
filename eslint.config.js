@@ -8,6 +8,9 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 export default defineConfig([
   globalIgnores([
     'dist',
+    'coverage',
+    'playwright-report',
+    'test-results',
     // Private source banks are imported into the database by an AST exporter;
     // runtime application code is still linted normally.
     'src/data/questions.ts',
