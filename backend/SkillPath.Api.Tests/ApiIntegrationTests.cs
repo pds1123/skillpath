@@ -44,6 +44,80 @@ public sealed class ApiIntegrationTests(SkillPathWebApplicationFactory factory) 
     }
 
     [Fact]
+    public async Task PublicCurriculum_ReturnsOnlyPublishedModulesAndLessons()
+    {
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync($"/api/curriculum/paths/{factory.CurriculumPathSlug}");
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("Published module", body, StringComparison.Ordinal);
+        Assert.Contains("Published lesson", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("Draft module", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("Draft lesson", body, StringComparison.Ordinal);
+        Assert.Contains(json.GetProperty("modules")[0].GetProperty("questionIds").EnumerateArray(), item => item.GetInt64() == factory.ChoiceQuestionId);
+    }
+
+    [Fact]
+    public async Task Learner_CannotAccessAdminLessonApi()
+    {
+        using var client = factory.CreateClient();
+        await Register(client);
+
+        var response = await client.GetAsync("/api/admin/lessons");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Admin_CanCreateReorderAndUnpublishLesson_WithVersionHistory()
+    {
+        const string password = "Testing-Password-123";
+        var email = UniqueEmail();
+        using var registrationClient = factory.CreateClient();
+        await Register(registrationClient, email, password);
+        await factory.PromoteToAdmin(email);
+
+        using var adminClient = factory.CreateClient();
+        await Login(adminClient, email, password);
+        var slug = $"admin-lesson-{Guid.NewGuid():N}";
+        var create = await adminClient.PostAsJsonAsync("/api/admin/lessons", new
+        {
+            moduleId = factory.PublishedModuleId,
+            slug,
+            title = "Admin lesson",
+            summary = "Created by the integration test",
+            content = "Version one",
+            estimatedMinutes = 8,
+            sortOrder = 1,
+            status = "published",
+        });
+        var created = await create.Content.ReadFromJsonAsync<JsonElement>();
+        var lessonId = created.GetProperty("id").GetInt64();
+        var update = await adminClient.PutAsJsonAsync($"/api/admin/lessons/{lessonId}", new
+        {
+            moduleId = factory.PublishedModuleId,
+            slug,
+            title = "Admin lesson revised",
+            summary = "Updated by the integration test",
+            content = "Version two",
+            estimatedMinutes = 9,
+            sortOrder = 2,
+            status = "draft",
+        });
+        var versions = await adminClient.GetFromJsonAsync<JsonElement>($"/api/admin/lessons/{lessonId}/versions");
+        var publicCurriculum = await adminClient.GetStringAsync($"/api/curriculum/paths/{factory.CurriculumPathSlug}");
+
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+        Assert.Equal(2, versions.GetArrayLength());
+        Assert.Equal("unpublished", versions[0].GetProperty("changeType").GetString());
+        Assert.DoesNotContain("Admin lesson revised", publicCurriculum, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task PublicQuestionResponse_HidesSolutionsAndSourceReferences()
     {
         using var client = factory.CreateClient();

@@ -12,6 +12,7 @@ public sealed class SkillPathDbContext(DbContextOptions<SkillPathDbContext> opti
     public DbSet<LearningPath> LearningPaths => Set<LearningPath>();
     public DbSet<LearningModule> Modules => Set<LearningModule>();
     public DbSet<Lesson> Lessons => Set<Lesson>();
+    public DbSet<ContentRevision> ContentRevisions => Set<ContentRevision>();
     public DbSet<Certification> Certifications => Set<Certification>();
     public DbSet<CertificationModule> CertificationModules => Set<CertificationModule>();
     public DbSet<Question> Questions => Set<Question>();
@@ -106,6 +107,21 @@ public sealed class SkillPathDbContext(DbContextOptions<SkillPathDbContext> opti
         lessons.HasIndex(x => new { x.ModuleId, x.Slug }).IsUnique();
         lessons.HasIndex(x => new { x.ModuleId, x.SortOrder }).IsUnique();
         lessons.HasOne<LearningModule>().WithMany().HasForeignKey(x => x.ModuleId);
+
+        var revisions = modelBuilder.Entity<ContentRevision>();
+        revisions.ToTable("ContentRevisions", table =>
+        {
+            table.HasCheckConstraint("CK_ContentRevisions_EntityType", "EntityType IN ('module', 'lesson')");
+            table.HasCheckConstraint("CK_ContentRevisions_Version", "Version > 0");
+            table.HasCheckConstraint("CK_ContentRevisions_ChangeType", "ChangeType IN ('seeded', 'created', 'updated', 'published', 'unpublished', 'reordered', 'archived')");
+            table.HasCheckConstraint("CK_ContentRevisions_Snapshot", "json_valid(SnapshotJson)");
+        });
+        revisions.HasKey(x => x.Id);
+        revisions.Property(x => x.EntityType).HasMaxLength(20);
+        revisions.Property(x => x.ChangeType).HasMaxLength(20);
+        revisions.HasIndex(x => new { x.EntityType, x.EntityId, x.Version }).IsUnique();
+        revisions.HasIndex(x => new { x.EntityType, x.EntityId, x.ChangedAt });
+        revisions.HasOne<AppUser>().WithMany().HasForeignKey(x => x.ChangedByUserId);
 
         var certifications = modelBuilder.Entity<Certification>();
         certifications.ToTable("Certifications", table =>

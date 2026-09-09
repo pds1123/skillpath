@@ -1,12 +1,6 @@
 import { useMemo, useState } from 'react';
 import { questionsForCert, quizQuestionsForCert } from '../data/questions';
 import type { CertificationKey, Question } from '../data/questions';
-import {
-  lessonCountForModule,
-  lessonsForModule,
-  modulesForCert,
-  type LearningModule,
-} from '../data/curriculum';
 import type { ProgressState } from '../hooks/useProgress';
 import { submitQuestionAnswer, type AnswerGrade } from '../services/api';
 import { QuestionAiAnalysis } from '../components/QuestionAiAnalysis';
@@ -14,6 +8,8 @@ import { QuestionSourceBadge } from '../components/QuestionSourceBadge';
 import { InteractiveExam } from '../components/InteractiveExam';
 import { CTFL_QUESTION_IMAGES, QUESTION_IMAGES } from '../data/questionImages';
 import type { InteractiveSubmission } from '../types/questionEngine';
+import type { CurriculumModule } from '../types/curriculum';
+import { useCurriculum } from '../hooks/useCurriculum';
 
 interface Props {
   progress: ProgressState;
@@ -26,11 +22,11 @@ interface Props {
   apiKey: string;
 }
 
-function progressForModule(module: LearningModule, questions: Question[], progress: ProgressState) {
-  const lessons = lessonsForModule(module);
-  const lessonTotal = lessonCountForModule(module);
+function progressForModule(module: CurriculumModule, questions: Question[], progress: ProgressState) {
+  const lessons = module.lessons;
+  const lessonTotal = lessons.length;
   const lessonCompleted = lessons.filter(lesson => progress.completedLessons[lesson.key]).length;
-  const moduleQuestions = questions.filter(question => module.domainMap.includes(question.domain));
+  const moduleQuestions = questions.filter(question => module.questionIds.includes(question.id));
   const checkCompleted = moduleQuestions.some(question => (progress.results[question.id] ?? []).length > 0);
   const totalUnits = lessonTotal + (moduleQuestions.length > 0 ? 1 : 0);
   return {
@@ -41,10 +37,10 @@ function progressForModule(module: LearningModule, questions: Question[], progre
 }
 
 function ModuleList({ modules, progress, questions, onSelect }: {
-  modules: LearningModule[];
+  modules: CurriculumModule[];
   progress: ProgressState;
   questions: Question[];
-  onSelect: (module: LearningModule) => void;
+  onSelect: (module: CurriculumModule) => void;
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
@@ -85,7 +81,7 @@ function ModuleList({ modules, progress, questions, onSelect }: {
 type ModuleTab = 'learn' | 'practice';
 
 function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onKnowledgeCheckPositionChange, onBack, activeCert, apiKey }: {
-  module: LearningModule;
+  module: CurriculumModule;
   progress: ProgressState;
   onAnswer: (id: number, correct: boolean, selected: string[]) => void;
   onToggleLesson: (lessonKey: string) => void;
@@ -94,9 +90,9 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onKnowledgeC
   activeCert: CertificationKey;
   apiKey: string;
 }) {
-  const lessons = useMemo(() => lessonsForModule(module), [module]);
+  const lessons = module.lessons;
   const practiceQuestions = useMemo(
-    () => quizQuestionsForCert(activeCert).filter(question => module.domainMap.includes(question.domain)),
+    () => quizQuestionsForCert(activeCert).filter(question => module.questionIds.includes(question.id)),
     [activeCert, module],
   );
   const hasSavedKnowledgeCheck = Object.prototype.hasOwnProperty.call(progress.knowledgeCheckPositions, module.key);
@@ -263,7 +259,7 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onKnowledgeC
                           <span className="min-w-0 flex-1">
                             <span className="block text-sm font-semibold text-[var(--sp-ink)]">{lesson.title}</span>
                             <span className="mt-0.5 block truncate text-[11px] text-[var(--sp-muted-light)]">
-                              {lesson.estimatedMinutes ? `${lesson.estimatedMinutes} min` : lesson.domain}
+                              {lesson.estimatedMinutes ? `${lesson.estimatedMinutes} min` : 'Guided lesson'}
                               {lesson.summary ? ` · ${lesson.summary}` : ''}
                             </span>
                           </span>
@@ -428,19 +424,34 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onKnowledgeC
 }
 
 export function ModulesPage({ progress, onAnswer, onToggleLesson, onKnowledgeCheckPositionChange, onNavigate, initialModule, activeCert, apiKey }: Props) {
-  const modules = useMemo(() => modulesForCert(activeCert), [activeCert]);
+  const { curriculum, loading, error, reload } = useCurriculum(activeCert);
+  const modules = useMemo(() => curriculum?.modules ?? [], [curriculum]);
   const questions = useMemo(() => questionsForCert(activeCert), [activeCert]);
   const initialSelection = useMemo(
-    () => modules.find(module => module.key === initialModule || module.domainMap.includes(initialModule ?? '')) ?? null,
+    () => modules.find(module => module.key === initialModule || module.slug === initialModule) ?? null,
     [initialModule, modules],
   );
   const selectedModule = initialSelection;
-  const pathLabel = activeCert === 'CTFL' ? 'QA & Testing Path' : 'Cloud Engineer Path';
+  const pathLabel = curriculum?.area.name ? `${curriculum.area.name} Path` : activeCert === 'CTFL' ? 'QA & Testing Path' : 'Cloud Engineer Path';
 
   return (
     <div className="min-h-screen bg-[var(--sp-canvas)] text-[var(--sp-ink)]">
       <main className="mx-auto max-w-5xl px-5 py-7 sm:px-8 sm:py-10">
-        {!selectedModule ? (
+        {loading ? (
+          <div className="space-y-4" role="status" aria-label="Loading learning modules">
+            <div className="h-5 w-28 animate-pulse rounded bg-[var(--sp-border)]" />
+            <div className="mt-8 h-10 w-64 animate-pulse rounded bg-[var(--sp-primary-100)]" />
+            <div className="grid gap-3 pt-5 sm:grid-cols-2">
+              {[1, 2, 3, 4].map(item => <div key={item} className="h-44 animate-pulse rounded-2xl bg-white ring-1 ring-[var(--sp-border)]" />)}
+            </div>
+          </div>
+        ) : error ? (
+          <section className="rounded-2xl bg-white px-6 py-14 text-center ring-1 ring-[var(--sp-border)]" role="alert">
+            <h1 className="font-semibold text-[var(--sp-ink-strong)]">Learning modules could not be loaded</h1>
+            <p className="mt-2 text-sm text-[var(--sp-muted)]">{error}</p>
+            <button type="button" onClick={reload} className="mt-5 rounded-lg bg-[var(--sp-primary-700)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--sp-primary-800)]">Try again</button>
+          </section>
+        ) : !selectedModule ? (
           <>
             <button
               type="button"
@@ -452,14 +463,19 @@ export function ModulesPage({ progress, onAnswer, onToggleLesson, onKnowledgeChe
             <div className="mb-8 mt-8">
               <p className="text-xs font-semibold tracking-[0.08em] text-[var(--sp-muted)]">{pathLabel}</p>
               <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-[var(--sp-ink)]">Learning modules</h1>
-              <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--sp-muted)]">Read the concepts in order, or open the module that answers what you need today.</p>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--sp-muted)]">{curriculum?.description ?? 'Read the concepts in order, or open the module that answers what you need today.'}</p>
             </div>
-            <ModuleList
+            {modules.length > 0 ? <ModuleList
               modules={modules}
               progress={progress}
               questions={questions}
               onSelect={module => onNavigate('modules', { module: module.key })}
-            />
+            /> : (
+              <div className="rounded-2xl bg-white px-6 py-14 text-center ring-1 ring-[var(--sp-border)]">
+                <h2 className="font-semibold text-[var(--sp-ink)]">No published modules yet</h2>
+                <p className="mt-2 text-sm text-[var(--sp-muted)]">Published curriculum will appear here.</p>
+              </div>
+            )}
           </>
         ) : (
           <ModuleDetail

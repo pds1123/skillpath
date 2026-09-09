@@ -1,11 +1,12 @@
 interface Props {
-  active: 'questions' | 'modules';
+  active: 'questions' | 'modules' | 'lessons';
   onNavigate: (page: string) => void;
 }
 
 const ITEMS = [
   { key: 'questions', label: 'Questions', page: 'admin' },
   { key: 'modules', label: 'Modules', page: 'adminModules' },
+  { key: 'lessons', label: 'Lessons', page: 'adminLessons' },
 ] as const;
 
 export function AdminSectionNav({ active, onNavigate }: Props) {

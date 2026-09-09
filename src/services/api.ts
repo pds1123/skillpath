@@ -1,4 +1,5 @@
 import type { InteractionResponse, InteractionSolution } from '../types/questionEngine';
+import type { CurriculumArea, CurriculumPath } from '../types/curriculum';
 
 export interface AuthUser {
   id: string;
@@ -301,4 +302,153 @@ export async function updateAdminModule(id: number, input: AdminModuleInput) {
 
 export async function archiveAdminModule(id: number) {
   await request(`/api/admin/modules/${id}`, { method: 'DELETE' });
+}
+
+interface CurriculumLessonResponse {
+  id: number;
+  slug: string;
+  title: string;
+  summary: string | null;
+  content: string;
+  estimatedMinutes: number | null;
+  sortOrder: number;
+}
+
+interface CurriculumModuleResponse {
+  id: number;
+  slug: string;
+  name: string;
+  description: string | null;
+  sortOrder: number;
+  lessons: CurriculumLessonResponse[];
+  questionIds: number[];
+}
+
+interface CurriculumPathResponse extends Omit<CurriculumPath, 'modules'> {
+  modules: CurriculumModuleResponse[];
+}
+
+export async function getCurriculumAreas() {
+  return request<CurriculumArea[]>('/api/curriculum/areas') as Promise<CurriculumArea[]>;
+}
+
+export async function getCurriculumPath(slug: string): Promise<CurriculumPath> {
+  const response = await request<CurriculumPathResponse>(`/api/curriculum/paths/${encodeURIComponent(slug)}`) as CurriculumPathResponse;
+  return {
+    ...response,
+    modules: response.modules.map(module => ({
+      id: module.id,
+      key: module.slug,
+      slug: module.slug,
+      name: module.name,
+      description: module.description ?? '',
+      order: module.sortOrder,
+      questionIds: module.questionIds,
+      practiceCount: module.questionIds.length > 0 ? 1 : 0,
+      lessons: module.lessons.map(lesson => ({
+        id: lesson.id,
+        key: `${module.slug}:${lesson.slug}`,
+        slug: lesson.slug,
+        title: lesson.title,
+        summary: lesson.summary,
+        content: lesson.content,
+        estimatedMinutes: lesson.estimatedMinutes,
+        order: lesson.sortOrder,
+      })),
+    })),
+  };
+}
+
+export interface ContentRevision {
+  version: number;
+  changeType: string;
+  snapshotJson: string;
+  changedByUserId: string | null;
+  changedBy: string | null;
+  changedAt: string;
+}
+
+export async function getAdminModuleVersions(id: number) {
+  return request<ContentRevision[]>(`/api/admin/modules/${id}/versions`) as Promise<ContentRevision[]>;
+}
+
+export interface AdminLessonStats {
+  total: number;
+  published: number;
+  draft: number;
+  archived: number;
+}
+
+export interface AdminLessonModuleOption {
+  id: number;
+  learningPathId: number;
+  learningPath: string;
+  certification: string;
+  name: string;
+  sortOrder: number;
+}
+
+export interface AdminLessonListItem {
+  id: number;
+  moduleId: number;
+  module: string;
+  learningPath: string;
+  certification: string;
+  slug: string;
+  title: string;
+  summary: string | null;
+  estimatedMinutes: number | null;
+  sortOrder: number;
+  status: string;
+  updatedAt: string;
+}
+
+export interface AdminLessonPage {
+  items: AdminLessonListItem[];
+  stats: AdminLessonStats;
+  modules: AdminLessonModuleOption[];
+}
+
+export interface AdminLessonDetail extends AdminLessonListItem {
+  content: string;
+  createdAt: string;
+}
+
+export type AdminLessonInput = Pick<
+  AdminLessonDetail,
+  'moduleId' | 'slug' | 'title' | 'summary' | 'content' | 'estimatedMinutes' | 'sortOrder' | 'status'
+>;
+
+export async function getAdminLessons(filters: { module?: string; status?: string; search?: string } = {}) {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value) params.set(key, value);
+  });
+  return request<AdminLessonPage>(`/api/admin/lessons?${params.toString()}`) as Promise<AdminLessonPage>;
+}
+
+export async function getAdminLesson(id: number) {
+  return request<AdminLessonDetail>(`/api/admin/lessons/${id}`) as Promise<AdminLessonDetail>;
+}
+
+export async function createAdminLesson(input: AdminLessonInput) {
+  return request<AdminLessonDetail>('/api/admin/lessons', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  }) as Promise<AdminLessonDetail>;
+}
+
+export async function updateAdminLesson(id: number, input: AdminLessonInput) {
+  return request<AdminLessonDetail>(`/api/admin/lessons/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  }) as Promise<AdminLessonDetail>;
+}
+
+export async function archiveAdminLesson(id: number) {
+  await request(`/api/admin/lessons/${id}`, { method: 'DELETE' });
+}
+
+export async function getAdminLessonVersions(id: number) {
+  return request<ContentRevision[]>(`/api/admin/lessons/${id}/versions`) as Promise<ContentRevision[]>;
 }

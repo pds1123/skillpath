@@ -245,7 +245,6 @@ public static class IstqbCtflSeeder
             .Where(item => moduleIds.Contains(item.ModuleId))
             .ToDictionaryAsync(item => $"{item.ModuleId}:{item.Slug}", StringComparer.OrdinalIgnoreCase);
         var added = 0;
-        var updated = 0;
 
         foreach (var moduleContent in curriculum.Modules)
         {
@@ -255,26 +254,7 @@ public static class IstqbCtflSeeder
             foreach (var lessonContent in moduleContent.Lessons.OrderBy(item => item.SortOrder))
             {
                 var key = $"{module.Id}:{lessonContent.Slug}";
-                if (existingLessons.TryGetValue(key, out var lesson))
-                {
-                    var changed = lesson.Title != lessonContent.Title ||
-                        lesson.Summary != lessonContent.Summary ||
-                        lesson.Content != lessonContent.Content ||
-                        lesson.EstimatedMinutes != lessonContent.EstimatedMinutes ||
-                        lesson.SortOrder != lessonContent.SortOrder ||
-                        lesson.Status != "published";
-                    if (!changed) continue;
-
-                    lesson.Title = lessonContent.Title;
-                    lesson.Summary = lessonContent.Summary;
-                    lesson.Content = lessonContent.Content;
-                    lesson.EstimatedMinutes = lessonContent.EstimatedMinutes;
-                    lesson.SortOrder = lessonContent.SortOrder;
-                    lesson.Status = "published";
-                    lesson.UpdatedAt = DateTimeOffset.UtcNow;
-                    updated += 1;
-                    continue;
-                }
+                if (existingLessons.ContainsKey(key)) continue;
 
                 db.Lessons.Add(new Lesson
                 {
@@ -292,7 +272,7 @@ public static class IstqbCtflSeeder
         }
 
         await db.SaveChangesAsync();
-        logger.LogInformation("Synchronized CTFL lessons: {AddedCount} added and {UpdatedCount} updated.", added, updated);
+        logger.LogInformation("Seeded {AddedCount} missing CTFL lessons. Existing admin-managed lessons were preserved.", added);
     }
 
     private sealed record ModuleDefinition(string Slug, string Name, string Description, int SortOrder);

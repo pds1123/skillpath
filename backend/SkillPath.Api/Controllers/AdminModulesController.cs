@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -5,13 +6,16 @@ using Microsoft.EntityFrameworkCore;
 using SkillPath.Api.Contracts;
 using SkillPath.Api.Data;
 using SkillPath.Api.Models;
+using SkillPath.Api.Services;
 
 namespace SkillPath.Api.Controllers;
 
 [ApiController]
 [Authorize(Roles = "admin")]
 [Route("api/admin/modules")]
-public sealed partial class AdminModulesController(SkillPathDbContext db) : ControllerBase
+public sealed partial class AdminModulesController(
+    SkillPathDbContext db,
+    CurriculumRevisionService revisions) : ControllerBase
 {
     private static readonly HashSet<string> AllowedStatuses = ["draft", "published", "archived"];
 
@@ -89,6 +93,13 @@ public sealed partial class AdminModulesController(SkillPathDbContext db) : Cont
         return response is null ? NotFound(new ApiError("Module was not found.")) : Ok(response);
     }
 
+    [HttpGet("{id:long}/versions")]
+    public async Task<ActionResult<IReadOnlyList<ContentRevisionResponse>>> GetVersions(long id)
+    {
+        if (!await db.Modules.AnyAsync(item => item.Id == id)) return NotFound(new ApiError("Module was not found."));
+        return Ok(await revisions.GetHistory("module", id));
+    }
+
     [HttpPost]
     public async Task<ActionResult<AdminModuleDetailResponse>> CreateModule(AdminModuleUpsertRequest request)
     {
@@ -115,7 +126,8 @@ public sealed partial class AdminModulesController(SkillPathDbContext db) : Cont
             SortOrder = module.SortOrder,
         });
         await db.SaveChangesAsync();
-        await ReorderPath(request.LearningPathId, module.Id, request.SortOrder);
+        var reordered = await ReorderPath(request.LearningPathId, module.Id, request.SortOrder);
+        await CaptureChangedModules(reordered, module.Id, "created");
         await transaction.CommitAsync();
 
         return Created($"/api/admin/modules/{module.Id}", await FindModule(module.Id));
@@ -132,12 +144,18 @@ public sealed partial class AdminModulesController(SkillPathDbContext db) : Cont
         if (module.LearningPathId != request.LearningPathId)
             return BadRequest(new ApiError("Moving a module to another learning path is not supported. Create a new module in that path instead."));
 
+        var oldStatus = module.Status;
+        var metadataChanged = module.Slug != NormalizeSlug(request.Slug) ||
+            module.Name != request.Name.Trim() ||
+            module.Description != NullIfWhiteSpace(request.Description) ||
+            module.Status != request.Status.Trim().ToLowerInvariant();
+
         await using var transaction = await db.Database.BeginTransactionAsync();
         module.Slug = NormalizeSlug(request.Slug);
         module.Name = request.Name.Trim();
         module.Description = NullIfWhiteSpace(request.Description);
         module.Status = request.Status.Trim().ToLowerInvariant();
-        module.UpdatedAt = DateTimeOffset.UtcNow;
+        if (metadataChanged) module.UpdatedAt = DateTimeOffset.UtcNow;
 
         var certificationCode = await (
             from mapping in db.CertificationModules
@@ -148,7 +166,9 @@ public sealed partial class AdminModulesController(SkillPathDbContext db) : Cont
         if (!string.Equals(certificationCode, request.Certification.Trim(), StringComparison.OrdinalIgnoreCase))
             return BadRequest(new ApiError("Certification cannot be changed after a module is created."));
         await db.SaveChangesAsync();
-        await ReorderPath(module.LearningPathId, module.Id, request.SortOrder);
+        var reordered = await ReorderPath(module.LearningPathId, module.Id, request.SortOrder);
+        if (metadataChanged || reordered.Contains(module.Id))
+            await CaptureChangedModules(reordered, module.Id, ChangeType(oldStatus, module.Status, metadataChanged));
         await transaction.CommitAsync();
 
         return Ok(await FindModule(id));
@@ -159,9 +179,11 @@ public sealed partial class AdminModulesController(SkillPathDbContext db) : Cont
     {
         var module = await db.Modules.SingleOrDefaultAsync(item => item.Id == id);
         if (module is null) return NotFound(new ApiError("Module was not found."));
+        if (module.Status == "archived") return NoContent();
         module.Status = "archived";
         module.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync();
+        await revisions.CaptureModule(id, "archived", CurrentUserId());
         return NoContent();
     }
 
@@ -194,20 +216,26 @@ public sealed partial class AdminModulesController(SkillPathDbContext db) : Cont
         return null;
     }
 
-    private async Task ReorderPath(long pathId, long moduleId, int requestedOrder)
+    private async Task<IReadOnlyList<long>> ReorderPath(long pathId, long moduleId, int requestedOrder)
     {
         var modules = await db.Modules
             .Where(item => item.LearningPathId == pathId)
             .OrderBy(item => item.SortOrder)
             .ThenBy(item => item.Id)
             .ToListAsync();
+        var originalOrders = modules.ToDictionary(item => item.Id, item => item.SortOrder);
         var current = modules.Single(item => item.Id == moduleId);
         modules.Remove(current);
         modules.Insert(Math.Clamp(requestedOrder - 1, 0, modules.Count), current);
 
         for (var index = 0; index < modules.Count; index++) modules[index].SortOrder = -100000 - index;
         await db.SaveChangesAsync();
-        for (var index = 0; index < modules.Count; index++) modules[index].SortOrder = index + 1;
+        var changedAt = DateTimeOffset.UtcNow;
+        for (var index = 0; index < modules.Count; index++)
+        {
+            modules[index].SortOrder = index + 1;
+            if (originalOrders[modules[index].Id] != modules[index].SortOrder) modules[index].UpdatedAt = changedAt;
+        }
 
         var certificationOrders = await db.CertificationModules
             .Where(item => modules.Select(module => module.Id).Contains(item.ModuleId))
@@ -215,6 +243,14 @@ public sealed partial class AdminModulesController(SkillPathDbContext db) : Cont
         foreach (var mapping in certificationOrders)
             mapping.SortOrder = modules.FindIndex(item => item.Id == mapping.ModuleId) + 1;
         await db.SaveChangesAsync();
+        return modules.Where(item => originalOrders[item.Id] != item.SortOrder).Select(item => item.Id).ToList();
+    }
+
+    private async Task CaptureChangedModules(IReadOnlyList<long> reordered, long currentId, string currentChangeType)
+    {
+        var ids = reordered.Append(currentId).Distinct().ToList();
+        foreach (var id in ids)
+            await revisions.CaptureModule(id, id == currentId ? currentChangeType : "reordered", CurrentUserId());
     }
 
     private async Task<AdminModuleDetailResponse?> FindModule(long id)
@@ -260,6 +296,20 @@ public sealed partial class AdminModulesController(SkillPathDbContext db) : Cont
 
     private static string NormalizeSlug(string? value) => value?.Trim().ToLowerInvariant() ?? string.Empty;
     private static string? NullIfWhiteSpace(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string ChangeType(string oldStatus, string newStatus, bool metadataChanged) =>
+        oldStatus != newStatus
+            ? newStatus switch
+            {
+                "published" => "published",
+                "draft" => "unpublished",
+                "archived" => "archived",
+                _ => "updated",
+            }
+            : metadataChanged ? "updated" : "reordered";
+
+    private Guid? CurrentUserId() =>
+        Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
 
     [GeneratedRegex("^[a-z0-9]+(?:-[a-z0-9]+)*$")]
     private static partial Regex SlugPattern();

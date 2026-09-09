@@ -4,6 +4,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using SkillPath.Api.Data;
 using SkillPath.Api.Models;
+using SkillPath.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 SQLitePCL.raw.SetProvider(new SQLitePCL.SQLite3Provider_sqlite3());
@@ -16,7 +17,7 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title = "SkillPath API",
         Version = "v1",
-        Description = "Authentication, learning progress, question bank, practice, and exam APIs."
+        Description = "Authentication, published curriculum, learning progress, question bank, practice, exam, and administration APIs."
     });
 });
 builder.Services.AddDbContext<SkillPathDbContext>((services, options) =>
@@ -31,6 +32,7 @@ builder.Services.AddDbContext<SkillPathDbContext>((services, options) =>
     options.UseSqlite(sqliteConnection.ConnectionString);
 });
 builder.Services.AddScoped<DatabaseDataStore>();
+builder.Services.AddScoped<CurriculumRevisionService>();
 builder.Services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -90,6 +92,8 @@ await using (var scope = app.Services.CreateAsyncScope())
         await QuestionBankSeeder.SeedAsync(db, app.Environment, logger);
         await IstqbCtflSeeder.SeedAsync(db, app.Environment, logger);
     }
+    var curriculumRevisions = scope.ServiceProvider.GetRequiredService<CurriculumRevisionService>();
+    await curriculumRevisions.EnsureInitialRevisions();
 }
 
 app.UseCors();

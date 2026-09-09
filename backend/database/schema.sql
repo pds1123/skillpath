@@ -107,6 +107,33 @@ CREATE TABLE dbo.Lessons
 );
 GO
 
+CREATE TABLE dbo.ContentRevisions
+(
+    Id bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_ContentRevisions PRIMARY KEY,
+    EntityType varchar(20) NOT NULL,
+    EntityId bigint NOT NULL,
+    Version int NOT NULL,
+    ChangeType varchar(20) NOT NULL,
+    SnapshotJson nvarchar(max) NOT NULL,
+    ChangedByUserId uniqueidentifier NULL,
+    ChangedAt datetimeoffset(0) NOT NULL CONSTRAINT DF_ContentRevisions_ChangedAt DEFAULT (SYSUTCDATETIME()),
+    CONSTRAINT FK_ContentRevisions_Users FOREIGN KEY (ChangedByUserId) REFERENCES dbo.Users (Id),
+    CONSTRAINT UQ_ContentRevisions_Entity_Version UNIQUE (EntityType, EntityId, Version),
+    CONSTRAINT CK_ContentRevisions_EntityType CHECK (EntityType IN ('module', 'lesson')),
+    CONSTRAINT CK_ContentRevisions_Version CHECK (Version > 0),
+    CONSTRAINT CK_ContentRevisions_ChangeType CHECK (ChangeType IN ('seeded', 'created', 'updated', 'published', 'unpublished', 'reordered', 'archived')),
+    CONSTRAINT CK_ContentRevisions_Snapshot CHECK (ISJSON(SnapshotJson) = 1)
+);
+GO
+
+CREATE INDEX IX_ContentRevisions_Entity_Date
+    ON dbo.ContentRevisions (EntityType, EntityId, ChangedAt DESC);
+GO
+
+CREATE INDEX IX_ContentRevisions_ChangedByUserId
+    ON dbo.ContentRevisions (ChangedByUserId);
+GO
+
 CREATE TABLE dbo.Certifications
 (
     Id bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_Certifications PRIMARY KEY,

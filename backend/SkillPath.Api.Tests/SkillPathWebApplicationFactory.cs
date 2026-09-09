@@ -15,6 +15,8 @@ public sealed class SkillPathWebApplicationFactory : WebApplicationFactory<Progr
 
     public long ChoiceQuestionId { get; private set; }
     public long MatchQuestionId { get; private set; }
+    public long PublishedModuleId { get; private set; }
+    public string CurriculumPathSlug { get; } = "automated-test-path";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -86,8 +88,64 @@ public sealed class SkillPathWebApplicationFactory : WebApplicationFactory<Progr
             new CertificationQuestion { CertificationId = certification.Id, QuestionId = match.Id, DomainName = "Engine" });
         await db.SaveChangesAsync();
 
+        var area = new LearningArea
+        {
+            Slug = "automated-testing",
+            Name = "Automated Testing",
+            Description = "Fixture curriculum area",
+            SortOrder = 1,
+            Status = "published",
+        };
+        db.LearningAreas.Add(area);
+        await db.SaveChangesAsync();
+        var path = new LearningPath
+        {
+            LearningAreaId = area.Id,
+            Slug = CurriculumPathSlug,
+            Name = "Automated Test Path",
+            Description = "Fixture curriculum path",
+            Level = "beginner",
+            SortOrder = 1,
+            Status = "published",
+        };
+        db.LearningPaths.Add(path);
+        await db.SaveChangesAsync();
+        var publishedModule = new LearningModule
+        {
+            LearningPathId = path.Id,
+            Slug = "published-module",
+            Name = "Published module",
+            Description = "Visible module",
+            SortOrder = 1,
+            Status = "published",
+        };
+        var draftModule = new LearningModule
+        {
+            LearningPathId = path.Id,
+            Slug = "draft-module",
+            Name = "Draft module",
+            Description = "Hidden module",
+            SortOrder = 2,
+            Status = "draft",
+        };
+        db.Modules.AddRange(publishedModule, draftModule);
+        await db.SaveChangesAsync();
+        db.CertificationModules.AddRange(
+            new CertificationModule { CertificationId = certification.Id, ModuleId = publishedModule.Id, SortOrder = 1 },
+            new CertificationModule { CertificationId = certification.Id, ModuleId = draftModule.Id, SortOrder = 2 });
+        db.Lessons.AddRange(
+            new Lesson { ModuleId = publishedModule.Id, Slug = "published-lesson", Title = "Published lesson", Content = "Visible content", EstimatedMinutes = 5, SortOrder = 1, Status = "published" },
+            new Lesson { ModuleId = publishedModule.Id, Slug = "draft-lesson", Title = "Draft lesson", Content = "Hidden content", EstimatedMinutes = 5, SortOrder = 2, Status = "draft" },
+            new Lesson { ModuleId = draftModule.Id, Slug = "nested-draft-lesson", Title = "Nested draft lesson", Content = "Hidden content", EstimatedMinutes = 5, SortOrder = 1, Status = "published" });
+        db.QuestionModules.Add(new QuestionModule { ModuleId = publishedModule.Id, QuestionId = choice.Id, IsPrimary = true });
+        await db.SaveChangesAsync();
+
+        var revisions = scope.ServiceProvider.GetRequiredService<CurriculumRevisionService>();
+        await revisions.EnsureInitialRevisions();
+
         ChoiceQuestionId = choice.Id;
         MatchQuestionId = match.Id;
+        PublishedModuleId = publishedModule.Id;
     }
 
     public async Task PromoteToAdmin(string email)

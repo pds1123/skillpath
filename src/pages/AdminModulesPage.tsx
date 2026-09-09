@@ -50,7 +50,7 @@ export function AdminModulesPage({ onNavigate }: Props) {
           <div>
             <p className="text-sm font-semibold text-[var(--sp-primary-700)]">Admin</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-[var(--sp-ink-strong)]">Learning modules</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--sp-muted)]">Manage module names, order and publishing state. Lesson content can be added separately when the curriculum is ready.</p>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--sp-muted)]">Manage module names, order and publishing state. Open a module to manage its lessons and review content history.</p>
           </div>
           <button type="button" onClick={() => onNavigate('adminModule')} className="self-start rounded-xl bg-[var(--sp-primary-700)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--sp-primary-800)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sp-primary-600)]">
             Create module

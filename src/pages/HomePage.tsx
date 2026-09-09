@@ -3,12 +3,8 @@ import type { ProgressState } from '../hooks/useProgress';
 import type { CertificationKey, Question } from '../data/questions';
 import { CERTIFICATIONS, questionsForCert, skillForCert } from '../data/questions';
 import { AppHeader } from '../components/AppHeader';
-import {
-  lessonCountForModule,
-  lessonsForModule,
-  modulesForCert,
-  type LearningModule,
-} from '../data/curriculum';
+import { useCurriculum } from '../hooks/useCurriculum';
+import type { CurriculumModule } from '../types/curriculum';
 
 interface Props {
   progress: ProgressState;
@@ -24,11 +20,11 @@ function ArrowIcon({ className = 'w-4 h-4' }: { className?: string }) {
   );
 }
 
-function moduleProgress(module: LearningModule, questions: Question[], progress: ProgressState) {
-  const lessons = lessonsForModule(module);
-  const lessonTotal = lessonCountForModule(module);
+function moduleProgress(module: CurriculumModule, questions: Question[], progress: ProgressState) {
+  const lessons = module.lessons;
+  const lessonTotal = lessons.length;
   const lessonCompleted = lessons.filter(lesson => progress.completedLessons[lesson.key]).length;
-  const moduleQuestions = questions.filter(question => module.domainMap.includes(question.domain));
+  const moduleQuestions = questions.filter(question => module.questionIds.includes(question.id));
   const hasKnowledgeCheck = moduleQuestions.length > 0;
   const checkCompleted = moduleQuestions.some(question => (progress.results[question.id] ?? []).length > 0);
   const totalUnits = lessonTotal + (hasKnowledgeCheck ? 1 : 0);
@@ -69,7 +65,8 @@ function learningStreak(progress: ProgressState): number {
 
 export function HomePage({ progress, onNavigate, activeCert }: Props) {
   const certQuestions = useMemo(() => questionsForCert(activeCert), [activeCert]);
-  const modules = useMemo(() => modulesForCert(activeCert), [activeCert]);
+  const { curriculum, loading, error, reload } = useCurriculum(activeCert);
+  const modules = useMemo(() => curriculum?.modules ?? [], [curriculum]);
   const moduleStats = useMemo(
     () => modules.map(module => ({ module, ...moduleProgress(module, certQuestions, progress) })),
     [modules, certQuestions, progress],
@@ -89,10 +86,10 @@ export function HomePage({ progress, onNavigate, activeCert }: Props) {
   );
   const streak = learningStreak(progress);
   const isCtfl = activeCert === 'CTFL';
-  const providerName = activeCert === 'AZ-900'
+  const providerName = curriculum?.name ?? (activeCert === 'AZ-900'
     ? 'Microsoft Azure'
-    : activeCert === 'CLF-C02' ? 'Amazon Web Services' : 'ISTQB CTFL';
-  const areaName = isCtfl ? 'QA & Testing' : 'Cloud';
+    : activeCert === 'CLF-C02' ? 'Amazon Web Services' : 'ISTQB CTFL');
+  const areaName = curriculum?.area.name ?? (isCtfl ? 'QA & Testing' : 'Cloud');
   const areaPage = isCtfl ? 'qa' : 'cloud';
 
   return (
@@ -119,7 +116,24 @@ export function HomePage({ progress, onNavigate, activeCert }: Props) {
           </p>
         </section>
 
-        {current && (
+        {loading && (
+          <div className="mb-12 space-y-4" role="status" aria-label="Loading curriculum">
+            <div className="h-52 animate-pulse rounded-2xl bg-[var(--sp-primary-100)]" />
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[1, 2, 3, 4].map(item => <div key={item} className="h-40 animate-pulse rounded-2xl bg-white ring-1 ring-[var(--sp-border)]" />)}
+            </div>
+          </div>
+        )}
+
+        {error && !loading && (
+          <section className="mb-12 rounded-2xl bg-white px-6 py-10 text-center ring-1 ring-[var(--sp-border)]" role="alert">
+            <h2 className="font-semibold text-[var(--sp-ink-strong)]">Curriculum could not be loaded</h2>
+            <p className="mt-2 text-sm text-[var(--sp-muted)]">{error}</p>
+            <button type="button" onClick={reload} className="mt-5 rounded-lg bg-[var(--sp-primary-700)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--sp-primary-800)]">Try again</button>
+          </section>
+        )}
+
+        {!loading && !error && current && (
           <section className="relative mb-12 overflow-hidden rounded-2xl bg-[var(--sp-primary-900)] p-6 text-white shadow-[0_22px_55px_rgba(48,46,118,0.2)] sm:p-8" aria-labelledby="continue-title">
             <div className="relative max-w-2xl">
               <p className="text-xs font-semibold tracking-[0.09em] text-[var(--sp-on-primary-muted)]">Continue learning</p>
@@ -150,7 +164,7 @@ export function HomePage({ progress, onNavigate, activeCert }: Props) {
           </section>
         )}
 
-        <section className="mb-14" aria-labelledby="learning-path-title">
+        {!loading && !error && <section className="mb-14" aria-labelledby="learning-path-title">
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
               <h2 id="learning-path-title" className="text-xl font-semibold tracking-[-0.025em]">Learning path</h2>
@@ -188,14 +202,14 @@ export function HomePage({ progress, onNavigate, activeCert }: Props) {
               </button>
             ))}
           </div>
-          <button
+          {modules.length > 0 && <button
             type="button"
             onClick={() => onNavigate('modules')}
             className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--sp-primary-700)] transition hover:gap-3 hover:text-[var(--sp-primary-800)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--sp-primary-600)]"
           >
             View all {modules.length} modules <ArrowIcon />
-          </button>
-        </section>
+          </button>}
+        </section>}
 
         <section className="mb-14 rounded-2xl bg-[var(--sp-primary-100)] p-6 sm:p-8" aria-labelledby="progress-title">
           <div className="grid gap-8 md:grid-cols-[0.85fr_1.4fr] md:gap-12">

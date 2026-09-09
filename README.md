@@ -11,6 +11,7 @@ The product is organised around learning rather than a question catalogue: learn
 - Learning-area home supporting available and planned learning paths.
 - Multiple structured learning paths.
 - Ordered modules with concept-focused lessons and knowledge checks.
+- Learner curriculum loaded from a published-content API rather than a bundled frontend catalogue.
 - Continue Learning, module progress, learning streak, and completed-lesson tracking.
 - Quick Practice, weak-area review, mistake review, and complete question browsing.
 - Optional certification preparation with timed mock assessments and review.
@@ -29,9 +30,11 @@ The product is organised around learning rather than a question catalogue: learn
 - Role-protected Admin area.
 - Question search, filtering, creation, editing, publishing, and soft archival.
 - Module search, ordering, editing, publishing-state management, and soft archival.
+- Lesson search, writing, ordering, publishing-state management, and soft archival.
 - Linked lesson and question counts for each module.
+- Immutable Module and Lesson snapshots recording content, status, and order changes.
 
-Lesson content editing is not part of the Admin UI yet. The learner curriculum currently comes from `src/data/curriculum.ts`; Module Admin changes are stored in the database and will become the learner-facing source when the curriculum API is connected.
+Learner pages only receive published areas, paths, modules, and lessons. Draft and archived content remains available to administrators without leaking into the public curriculum API. `src/data/curriculum.ts` and `src/data/studyContent.ts` are import sources for initial seed generation, not learner-facing runtime stores.
 
 ## Architecture
 
@@ -56,6 +59,7 @@ Learning Area → Learning Path → Module → Lesson
 
 Certification → Module and Question mappings
 User → Lesson completions, practice sessions, attempts, and exam history
+Module or Lesson → Ordered content revision snapshots
 ```
 
 See [backend/DATABASE_DESIGN.md](backend/DATABASE_DESIGN.md) for the full data model.
@@ -158,6 +162,7 @@ Useful commands:
 SELECT Id, Email, DisplayName, Role, Status FROM Users;
 SELECT Id, LearningPathId, Name, SortOrder, Status FROM Modules ORDER BY LearningPathId, SortOrder;
 SELECT Id, ModuleId, Title, SortOrder, Status FROM Lessons LIMIT 20;
+SELECT EntityType, EntityId, Version, ChangeType, ChangedAt FROM ContentRevisions ORDER BY ChangedAt DESC LIMIT 20;
 SELECT Id, LegacyId, InteractionType, Status FROM Questions LIMIT 20;
 
 .schema Modules
@@ -180,6 +185,7 @@ A SQLite viewer extension can also open the database as a table-based interface.
 | `/login` | Registration and sign-in |
 | `/admin/questions` | Question management |
 | `/admin/modules` | Module management |
+| `/admin/lessons` | Lesson content and publishing management |
 
 ## Project structure
 
@@ -187,7 +193,7 @@ A SQLite viewer extension can also open the database as a table-based interface.
 src/
   auth/                 Frontend authentication state
   components/           Shared application and question components
-  data/                 Curriculum and local development data
+  data/                 Seed inputs and local question-bank loaders
   hooks/                Certification and progress hooks
   pages/                Learner, assessment, account, and Admin pages
   services/             Typed API client
@@ -196,7 +202,7 @@ src/
 backend/
   SkillPath.Api/
     Contracts/          API request and response models
-    Controllers/        Authentication, progress, question, exam, and Admin APIs
+    Controllers/        Authentication, curriculum, progress, question, exam, and Admin APIs
     Data/               EF Core context, migrations, import, and seeding
     Models/             Database entities
     Services/           Central question validation and grading engine

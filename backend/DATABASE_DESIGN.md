@@ -8,6 +8,7 @@ SkillPath 的数据库需要同时支持：
 - Learning Area → Learning Path → Module → Lesson 的课程结构
 - Azure、AWS 以及未来其他领域的题库
 - 课程与认证之间的可选映射
+- Module 与 Lesson 的草稿、发布、归档、排序和内容版本记录
 - 课程完成、练习记录、错题与薄弱项
 - 模拟考试与答题回顾
 
@@ -30,6 +31,7 @@ erDiagram
     USERS ||--o{ PRACTICE_SESSIONS : starts
     USERS ||--o{ QUESTION_ATTEMPTS : submits
     USERS ||--o{ EXAM_ATTEMPTS : takes
+    USERS ||--o{ CONTENT_REVISIONS : changes
 
     LEARNING_AREAS ||--o{ LEARNING_PATHS : contains
     LEARNING_PATHS ||--o{ MODULES : contains
@@ -61,6 +63,7 @@ erDiagram
 | `LearningPaths` | 一个领域下的学习路径，例如 Cloud Engineer Path |
 | `Modules` | 有教学顺序的课程模块，不由题库 tag 自动生成 |
 | `Lessons` | 真正的学习内容，内容暂用 Markdown 保存 |
+| `ContentRevisions` | Module 与 Lesson 每次创建、编辑、状态切换和排序后的不可变 JSON 快照 |
 | `Questions` | 题干、题型、解释和交互配置，不直接绑定某个认证 |
 | `QuestionOptions` | 选项和正确答案；正确性仅由后端使用 |
 | `QuestionModules` | 将题目映射到课程模块，可指定一个 primary module |
@@ -113,6 +116,10 @@ erDiagram
 
 课程、题目和认证默认使用 `Status = archived` 软下线，不物理删除。这样历史答题与考试回顾不会因为内容下线而失去引用。
 
+### 内容版本
+
+`ContentRevisions` 使用 `EntityType + EntityId` 指向 Module 或 Lesson，并按实体保存连续版本号。这里刻意不建立到两张内容表的数据库外键：一个通用历史表可以同时保存两种实体的完整 JSON 快照，而实体存在性由管理 API 保证。`ChangedByUserId` 可为空，以区分系统补建的初始版本与管理员修改。
+
 ### 时间
 
 数据库统一保存 UTC `datetimeoffset`。学习 streak 根据用户时区在 API 层换算自然日。
@@ -122,8 +129,12 @@ erDiagram
 | API | 主要数据表 |
 |---|---|
 | `POST /api/auth/register` | `Users`, `UserPreferences` |
-| `GET /api/learning-areas` | `LearningAreas`, `LearningPaths` |
-| `GET /api/paths/{slug}` | `LearningPaths`, `Modules`, `Lessons` |
+| `GET /api/curriculum/areas` | 仅已发布的 `LearningAreas`, `LearningPaths` |
+| `GET /api/curriculum/paths/{slug}` | 仅已发布的 `LearningPaths`, `Modules`, `Lessons`, `QuestionModules` |
+| `GET`, `POST /api/admin/lessons` | `Lessons`, `ContentRevisions` |
+| `PUT`, `DELETE /api/admin/lessons/{id}` | `Lessons`, `ContentRevisions` |
+| `GET /api/admin/modules/{id}/versions` | `ContentRevisions` |
+| `GET /api/admin/lessons/{id}/versions` | `ContentRevisions` |
 | `GET /api/me/learning` | `UserPathEnrollments`, `LessonCompletions`, `QuestionAttempts` |
 | `PUT /api/lessons/{id}/completion` | `LessonCompletions`, `UserPathEnrollments` |
 | `POST /api/practice-sessions` | `PracticeSessions` |
@@ -150,11 +161,13 @@ erDiagram
 3. 提交答案后由后端判分并返回 explanation。
 4. 模拟考试使用 `ExamAttemptQuestions` 固定题目顺序。
 
-### Phase 3：管理内容
+### Phase 3：管理内容（已完成）
 
-1. 增加内容管理 API。
-2. 支持草稿、发布、归档和内容版本。
-3. 增加统计查询和学习进度缓存。
+1. Curriculum API 已成为学员页面的课程数据源，并只返回已发布内容。
+2. Module 与 Lesson 管理 API 支持草稿、发布、归档和排序。
+3. 每次内容或顺序变更都会写入 `ContentRevisions`，管理页可查看版本历史。
+
+统计查询和学习进度缓存仍属于后续性能优化，不影响当前课程管理闭环。
 
 ## 8. 文件
 

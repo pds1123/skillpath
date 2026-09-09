@@ -62,6 +62,18 @@ public sealed class Lesson
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 
+public sealed class ContentRevision
+{
+    public long Id { get; set; }
+    public required string EntityType { get; set; }
+    public long EntityId { get; set; }
+    public int Version { get; set; }
+    public required string ChangeType { get; set; }
+    public required string SnapshotJson { get; set; }
+    public Guid? ChangedByUserId { get; set; }
+    public DateTimeOffset ChangedAt { get; set; } = DateTimeOffset.UtcNow;
+}
+
 public sealed class Certification
 {
     public long Id { get; set; }

@@ -16,7 +16,7 @@ import type { CertificationKey } from './data/questions';
 
 import { useAuth } from './auth/useAuth';
 
-type Page = 'home' | 'cloud' | 'qa' | 'tutorial' | 'browse' | 'modules' | 'practice' | 'certification' | 'exam' | 'examReview' | 'settings' | 'login' | 'admin' | 'adminQuestion' | 'adminModules' | 'adminModule';
+type Page = 'home' | 'cloud' | 'qa' | 'tutorial' | 'browse' | 'modules' | 'practice' | 'certification' | 'exam' | 'examReview' | 'settings' | 'login' | 'admin' | 'adminQuestion' | 'adminModules' | 'adminModule' | 'adminLessons' | 'adminLesson';
 type NavigateTo = (page: string, params?: Record<string, string>) => void;
 
 const API_KEY_STORAGE = 'skillpath_claude_api_key';
@@ -38,6 +38,8 @@ const AdminQuestionsPage = lazy(() => import('./pages/AdminQuestionsPage').then(
 const AdminQuestionEditorPage = lazy(() => import('./pages/AdminQuestionEditorPage').then(module => ({ default: module.AdminQuestionEditorPage })));
 const AdminModulesPage = lazy(() => import('./pages/AdminModulesPage').then(module => ({ default: module.AdminModulesPage })));
 const AdminModuleEditorPage = lazy(() => import('./pages/AdminModuleEditorPage').then(module => ({ default: module.AdminModuleEditorPage })));
+const AdminLessonsPage = lazy(() => import('./pages/AdminLessonsPage').then(module => ({ default: module.AdminLessonsPage })));
+const AdminLessonEditorPage = lazy(() => import('./pages/AdminLessonEditorPage').then(module => ({ default: module.AdminLessonEditorPage })));
 
 function RouteLoading() {
   return (
@@ -90,6 +92,10 @@ function pagePath(page: string, params: Record<string, string> = {}) {
       return '/admin/modules';
     case 'adminModule':
       return params.moduleId ? `/admin/modules/${encodeURIComponent(params.moduleId)}` : '/admin/modules/new';
+    case 'adminLessons':
+      return params.moduleId ? `/admin/lessons?module=${encodeURIComponent(params.moduleId)}` : '/admin/lessons';
+    case 'adminLesson':
+      return params.lessonId ? `/admin/lessons/${encodeURIComponent(params.lessonId)}` : '/admin/lessons/new';
     default:
       return '/';
   }
@@ -229,6 +235,8 @@ export default function App() {
       [/^\/login$/, 'Sign In | SkillPath'],
       [/^\/admin\/modules\//, 'Edit Module | SkillPath Admin'],
       [/^\/admin\/modules$/, 'Learning Modules | SkillPath Admin'],
+      [/^\/admin\/lessons\//, 'Edit Lesson | SkillPath Admin'],
+      [/^\/admin\/lessons$/, 'Lessons | SkillPath Admin'],
       [/^\/admin\/questions\//, 'Edit Question | SkillPath Admin'],
       [/^\/admin\/questions$/, 'Question Bank | SkillPath Admin'],
     ];
@@ -290,6 +298,8 @@ export default function App() {
       <Route path="/admin/questions/:questionId" element={<AdminAccess><AdminQuestionEditorPage onNavigate={navigate} /></AdminAccess>} />
       <Route path="/admin/modules" element={<AdminAccess><AdminModulesPage onNavigate={navigate} /></AdminAccess>} />
       <Route path="/admin/modules/:moduleId" element={<AdminAccess><AdminModuleEditorPage onNavigate={navigate} /></AdminAccess>} />
+      <Route path="/admin/lessons" element={<AdminAccess><AdminLessonsPage onNavigate={navigate} /></AdminAccess>} />
+      <Route path="/admin/lessons/:lessonId" element={<AdminAccess><AdminLessonEditorPage onNavigate={navigate} /></AdminAccess>} />
       <Route path="/tutorial" element={<Navigate to="/learning" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

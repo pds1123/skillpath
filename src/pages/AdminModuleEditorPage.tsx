@@ -2,15 +2,18 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { AdminSectionNav } from '../components/AdminSectionNav';
 import { AppHeader } from '../components/AppHeader';
+import { ContentVersionHistory } from '../components/ContentVersionHistory';
 import {
   ApiError,
   archiveAdminModule,
   createAdminModule,
   getAdminModule,
   getAdminModules,
+  getAdminModuleVersions,
   updateAdminModule,
   type AdminLearningPathOption,
   type AdminModuleInput,
+  type ContentRevision,
 } from '../services/api';
 
 interface Props {
@@ -41,6 +44,7 @@ export function AdminModuleEditorPage({ onNavigate }: Props) {
   const [paths, setPaths] = useState<AdminLearningPathOption[]>([]);
   const [lessonCount, setLessonCount] = useState(0);
   const [questionCount, setQuestionCount] = useState(0);
+  const [versions, setVersions] = useState<ContentRevision[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,10 +56,12 @@ export function AdminModuleEditorPage({ onNavigate }: Props) {
     Promise.all([
       getAdminModules(),
       !isNew && id ? getAdminModule(id) : Promise.resolve(null),
+      !isNew && id ? getAdminModuleVersions(id) : Promise.resolve([]),
     ])
-      .then(([metadata, module]) => {
+      .then(([metadata, module, history]) => {
         if (!active) return;
         setPaths(metadata.paths);
+        setVersions(history);
         if (module) {
           setForm({
             learningPathId: module.learningPathId,
@@ -206,9 +212,11 @@ export function AdminModuleEditorPage({ onNavigate }: Props) {
                   <div><dt className="text-[var(--sp-muted)]">Lessons</dt><dd className="mt-1 text-xl font-semibold tabular-nums text-[var(--sp-ink-strong)]">{lessonCount}</dd></div>
                   <div><dt className="text-[var(--sp-muted)]">Questions</dt><dd className="mt-1 text-xl font-semibold tabular-nums text-[var(--sp-ink-strong)]">{questionCount}</dd></div>
                 </dl>
-                <p className="mt-4 text-xs leading-5 text-[var(--sp-muted)]">Lesson and question editing remain in their own sections, so changing module metadata does not modify linked content.</p>
+                <button type="button" onClick={() => onNavigate('adminLessons', { moduleId: String(id) })} className="mt-5 rounded-lg bg-[var(--sp-primary-100)] px-4 py-2.5 text-sm font-semibold text-[var(--sp-primary-800)] transition hover:bg-[var(--sp-primary-200)]">Manage lessons</button>
               </section>
             )}
+
+            {!isNew && <ContentVersionHistory versions={versions} />}
 
             <div className="flex flex-col gap-3 border-t border-[var(--sp-border)] pt-5 sm:flex-row sm:items-center">
               <button type="button" onClick={() => void save()} disabled={saving} className="rounded-xl bg-[var(--sp-primary-700)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[var(--sp-primary-800)] disabled:opacity-50">{saving ? 'Saving…' : isNew ? 'Create module' : 'Save changes'}</button>
