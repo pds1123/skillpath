@@ -12,7 +12,7 @@ Or set the EXAMTOPICS_COOKIE env var:
   export EXAMTOPICS_COOKIE="_examtopics_session=XXXX"
   python3 scripts/scrape_examtopics.py
 
-Outputs: scripts/examtopics_raw.json
+Outputs: .local/imports/examtopics_raw.json
 """
 
 import json
@@ -144,7 +144,7 @@ def main():
                         help="Max pages to scrape (0 = auto-detect)")
     parser.add_argument("--start", type=int, default=1, help="Start page")
     parser.add_argument("--delay", type=float, default=3.0, help="Delay between pages (seconds)")
-    parser.add_argument("--out", default="scripts/examtopics_raw.json")
+    parser.add_argument("--out", default=".local/imports/examtopics_raw.json")
     args = parser.parse_args()
 
     session = make_session(args.cookie)

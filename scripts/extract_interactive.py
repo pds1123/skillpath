@@ -31,14 +31,16 @@ import json
 import os
 import re
 import time
+from pathlib import Path
 
 import anthropic
 
-QUESTIONS_TS = "/Users/disi/Desktop/projects/1/src/data/questions.ts"
-IMAGES_TS = "/Users/disi/Desktop/projects/1/src/data/questionImages.ts"
-IMAGES_DIR = "/Users/disi/Desktop/projects/1/public/qimages"
-OUT_TS = "/Users/disi/Desktop/projects/1/src/data/interactiveData.ts"
-CHECKPOINT = "/Users/disi/Desktop/projects/1/scripts/interactive_checkpoint.json"
+REPO = Path(__file__).resolve().parents[1]
+QUESTIONS_TS = REPO / "src/data/questions.ts"
+IMAGES_TS = REPO / "src/data/questionImages.ts"
+IMAGES_DIR = REPO / "public/qimages"
+OUT_TS = REPO / "src/data/interactiveData.ts"
+CHECKPOINT = REPO / ".local/imports/interactive_checkpoint.json"
 
 MODEL = "claude-haiku-4-5-20251001"
 
@@ -225,6 +227,7 @@ def main():
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--ids", type=str, default="", help="Comma-separated question IDs to (re)process")
     args = parser.parse_args()
+    CHECKPOINT.parent.mkdir(parents=True, exist_ok=True)
 
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
@@ -307,8 +310,8 @@ def main():
         "  | { kind: 'match'; pool: string[]; prompts: InteractivePrompt[] }",
         "  | { kind: 'dropdown'; prompts: InteractivePrompt[] }",
         "  | { kind: 'yesno'; prompts: InteractivePrompt[] }",
-        "  | { kind: 'click'; label: string; correct: { x: number; y: number; w: number; h: number } }
-  | { kind: 'self_grade' };",
+        "  | { kind: 'click'; label: string; correct: { x: number; y: number; w: number; h: number } }",
+        "  | { kind: 'self_grade' };",
         "",
         "export const INTERACTIVE_DATA: Record<number, InteractiveData> = {",
     ]

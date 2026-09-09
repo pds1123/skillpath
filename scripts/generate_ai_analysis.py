@@ -18,11 +18,13 @@ import os
 import re
 import time
 import argparse
+from pathlib import Path
 import anthropic
 
-QUESTIONS_TS = "/Users/disi/Desktop/projects/1/src/data/questions.ts"
-OUT_TS = "/Users/disi/Desktop/projects/1/src/data/aiAnalysis.ts"
-CHECKPOINT = "/Users/disi/Desktop/projects/1/scripts/ai_analysis_checkpoint.json"
+REPO = Path(__file__).resolve().parents[1]
+QUESTIONS_TS = REPO / "src/data/questions.ts"
+OUT_TS = REPO / "src/data/aiAnalysis.ts"
+CHECKPOINT = REPO / ".local/imports/ai_analysis_checkpoint.json"
 
 
 def load_questions(path: str) -> list[dict]:
@@ -62,6 +64,7 @@ def main():
     parser.add_argument("--delay", type=float, default=0.5, help="Delay between calls (seconds)")
     parser.add_argument("--limit", type=int, default=0, help="Only process N questions (0 = all)")
     args = parser.parse_args()
+    CHECKPOINT.parent.mkdir(parents=True, exist_ok=True)
 
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:

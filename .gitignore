@@ -34,6 +34,9 @@ lerna-debug.log*
 *.local
 
 # ─── Private data — NEVER commit ─────────────────────────────────────────────
+# One place for local-only source material, personal notes, imports, and exports.
+/.local/
+
 # The real question banks, interactive data, image manifest, and question
 # images are kept locally only. Public repo uses the *.example.ts stubs.
 src/data/questions.ts
@@ -50,13 +53,7 @@ scripts/*.output
 scripts/*_raw.txt
 scripts/*_raw.json
 scripts/*_checkpoint.json
-questions_raw.json
 skills-lock.json
-
-# Unrelated notes/docs that ended up in this folder
-MBIE_*.md
-NOTES.md
-TODO.md
 
 # Env
 .env

@@ -21,12 +21,12 @@ from reportlab.platypus import (
 )
 from reportlab.lib.enums import TA_LEFT
 
-REPO = Path('/Users/disi/Desktop/projects/1')
+REPO = Path(__file__).resolve().parents[1]
 QS_TS = REPO / 'src/data/questions.ts'
 INT_TS = REPO / 'src/data/interactiveData.ts'
 IMG_TS = REPO / 'src/data/questionImages.ts'
 QIMG_DIR = REPO / 'public/qimages'
-OUT_PDF = REPO / 'AZ-900_QuestionBank.pdf'
+OUT_PDF = REPO / '.local/exports/AZ-900_QuestionBank.pdf'
 
 
 def _extract_array_block(text: str, start_marker: str) -> str:
@@ -474,6 +474,7 @@ def render_question(story, q, interactive, images, styles):
 
 
 def main():
+    OUT_PDF.parent.mkdir(parents=True, exist_ok=True)
     print('Parsing data...', file=sys.stderr)
     questions = parse_questions()
     interactive = parse_interactive()

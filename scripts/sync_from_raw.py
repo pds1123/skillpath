@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Compare src/data/questions.ts against questions_raw.json and re-fill any
+Compare src/data/questions.ts against .local/imports/questions_raw.json and re-fill any
 questions where raw has data that the TS is missing.
 
 Preserves TS-only fields (domain, mode, cleaned answer_text). Only fills in:
@@ -11,9 +11,11 @@ Preserves TS-only fields (domain, mode, cleaned answer_text). Only fills in:
 """
 import json
 import re
+from pathlib import Path
 
-TS_PATH = "/Users/disi/Desktop/projects/1/src/data/questions.ts"
-RAW_PATH = "/Users/disi/Desktop/projects/1/questions_raw.json"
+REPO = Path(__file__).resolve().parents[1]
+TS_PATH = REPO / "src/data/questions.ts"
+RAW_PATH = REPO / ".local/imports/questions_raw.json"
 
 
 def load_ts():
