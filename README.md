@@ -281,6 +281,8 @@ Backend unit tests, API integration tests, and clean migration
                     ↓
 Production Docker image build
                     +
+Container startup, health, and SPA-route smoke tests
+                    +
 Playwright user flows and Axe accessibility checks
 ```
 
