@@ -1,7 +1,7 @@
 // Sample AWS Cloud Practitioner (CLF-C02) items — hand-written for demo.
 // Full AWS question data is NOT included in this repository.
 
-import type { Question } from './questions';
+import type { Question } from '../types/questions';
 
 export const QUESTIONS_AWS: Question[] = [
   {

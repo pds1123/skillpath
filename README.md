@@ -230,6 +230,9 @@ The committed `*.example.ts` files keep the frontend buildable without publishin
 ## Checks
 
 ```bash
+npm run test:all
+
+# Or run checks individually
 npm run lint
 npm run build
 npm run test:unit:coverage

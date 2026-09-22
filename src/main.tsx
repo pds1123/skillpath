@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from './auth/AuthProvider.tsx'
-import { loadQuestionBank } from './data/questions.ts'
+import { loadQuestionBank } from './data/questionCatalog.ts'
 
 async function bootstrap() {
   try {

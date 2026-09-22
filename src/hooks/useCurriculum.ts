@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { CertificationKey } from '../data/questions';
+import type { CertificationKey } from '../types/questions';
 import { getCurriculumPath } from '../services/api';
 import type { CurriculumPath } from '../types/curriculum';
 

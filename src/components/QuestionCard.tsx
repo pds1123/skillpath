@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Question } from '../data/questions';
+import type { Question } from '../types/questions';
 import { submitQuestionAnswer, type AnswerGrade } from '../services/api';
 import { QuestionSourceBadge } from './QuestionSourceBadge';
 import { InteractiveExam } from './InteractiveExam';

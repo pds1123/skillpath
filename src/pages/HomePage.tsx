@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { ProgressState } from '../hooks/useProgress';
-import type { CertificationKey, Question } from '../data/questions';
-import { CERTIFICATIONS, questionsForCert, skillForCert } from '../data/questions';
+import { CERTIFICATIONS, questionsForCert, skillForCert } from '../data/questionCatalog';
+import type { CertificationKey, Question } from '../types/questions';
 import { AppHeader } from '../components/AppHeader';
 import { useCurriculum } from '../hooks/useCurriculum';
 import type { CurriculumModule } from '../types/curriculum';

@@ -6,7 +6,7 @@ import {
   registerAccount,
   type AuthUser,
 } from '../services/api';
-import { loadQuestionBank } from '../data/questions';
+import { loadQuestionBank } from '../data/questionCatalog';
 import { AuthContext, type AuthContextValue } from './auth-context';
 
 export function AuthProvider({ children }: { children: ReactNode }) {

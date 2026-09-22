@@ -7,7 +7,7 @@
 // works while the surface UI shows a proper learning-path structure.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { CertificationKey, SkillKey } from './questions';
+import type { CertificationKey, SkillKey } from '../types/questions';
 import { studyContentForCert } from './studyContent';
 
 export interface LearningModule {

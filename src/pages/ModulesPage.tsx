@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { questionsForCert, quizQuestionsForCert } from '../data/questions';
-import type { CertificationKey, Question } from '../data/questions';
+import { questionsForCert, quizQuestionsForCert } from '../data/questionCatalog';
+import type { CertificationKey, Question } from '../types/questions';
 import type { ProgressState } from '../hooks/useProgress';
 import { submitQuestionAnswer, type AnswerGrade } from '../services/api';
 import { QuestionAiAnalysis } from '../components/QuestionAiAnalysis';

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { questionsForCert } from '../data/questions';
-import type { CertificationKey, Question } from '../data/questions';
+import { questionsForCert } from '../data/questionCatalog';
+import type { CertificationKey, Question } from '../types/questions';
 import { QuestionCard } from '../components/QuestionCard';
 import type { ProgressState } from '../hooks/useProgress';
 

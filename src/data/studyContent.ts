@@ -1,4 +1,4 @@
-import type { CertificationKey } from './questions';
+import type { CertificationKey } from '../types/questions';
 import ctflCurriculum from '../../content/ctfl-lessons.json';
 
 export interface StudySection {

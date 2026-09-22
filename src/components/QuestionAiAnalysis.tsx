@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type React from 'react';
-import type { Question } from '../data/questions';
+import type { Question } from '../types/questions';
 
 interface Props {
   apiKey: string;

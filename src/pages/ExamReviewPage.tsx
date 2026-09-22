@@ -1,6 +1,6 @@
-import { questionsForCert } from '../data/questions';
+import { questionsForCert } from '../data/questionCatalog';
 import type { ProgressState } from '../hooks/useProgress';
-import type { Question } from '../data/questions';
+import type { Question } from '../types/questions';
 import { AppHeader } from '../components/AppHeader';
 
 interface Props {

@@ -12,7 +12,7 @@ import type { PracticeMode } from './pages/PracticePage';
 import { useProgress } from './hooks/useProgress';
 import { useCertification } from './hooks/useCertification';
 import type { ExamAttempt, ProgressState } from './hooks/useProgress';
-import type { CertificationKey } from './data/questions';
+import type { CertificationKey } from './types/questions';
 
 import { useAuth } from './auth/useAuth';
 

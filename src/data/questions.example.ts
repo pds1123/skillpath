@@ -9,38 +9,31 @@
 // so all pages, filters, exam simulation, and cert switching work as-is.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { InteractionDefinition, QuestionInteractionType } from '../types/questionEngine';
+import type { InteractionDefinition } from '../types/questionEngine';
+import type {
+  Certification,
+  CertificationKey,
+  Question,
+  QuestionMode,
+  QuestionType,
+  Skill,
+} from '../types/questions';
 
-export type QuestionType = QuestionInteractionType;
-export type QuestionMode = 'quiz' | 'reveal' | 'read';
-export type CertificationKey = 'AZ-900' | 'CLF-C02' | 'CTFL';
-export type SkillKey = 'azure-fundamentals' | 'aws-fundamentals' | 'istqb-ctfl';
-
-export interface Skill {
-  key: SkillKey;
-  name: string;
-  shortName: string;
-  provider: 'Azure' | 'AWS' | 'ISTQB';
-  level: 'Beginner' | 'Intermediate' | 'Advanced';
-  certificationAlignment?: CertificationKey;
-}
+export type {
+  Certification,
+  CertificationKey,
+  Question,
+  QuestionMode,
+  QuestionType,
+  Skill,
+  SkillKey,
+} from '../types/questions';
 
 export const SKILLS: Skill[] = [
   { key: 'azure-fundamentals', name: 'Microsoft Azure Fundamentals', shortName: 'Azure Fundamentals', provider: 'Azure', level: 'Beginner', certificationAlignment: 'AZ-900' },
   { key: 'aws-fundamentals', name: 'AWS Cloud Fundamentals', shortName: 'AWS Fundamentals', provider: 'AWS', level: 'Beginner', certificationAlignment: 'CLF-C02' },
   { key: 'istqb-ctfl', name: 'ISTQB Certified Tester Foundation Level', shortName: 'ISTQB CTFL', provider: 'ISTQB', level: 'Beginner', certificationAlignment: 'CTFL' },
 ];
-
-export interface Certification {
-  key: CertificationKey;
-  name: string;
-  shortName: string;
-  provider: 'Azure' | 'AWS' | 'ISTQB';
-  mockQuestionCount: number;
-  mockDurationMinutes: number;
-  passScore: number;
-  aligns: SkillKey;
-}
 
 export const CERTIFICATIONS: Certification[] = [
   { key: 'AZ-900', name: 'Azure Fundamentals', shortName: 'AZ-900', provider: 'Azure', mockQuestionCount: 45, mockDurationMinutes: 45, passScore: 0.7, aligns: 'azure-fundamentals' },
@@ -51,23 +44,6 @@ export const CERTIFICATIONS: Certification[] = [
 export function skillForCert(cert: CertificationKey): Skill {
   const certification = CERTIFICATIONS.find(item => item.key === cert)!;
   return SKILLS.find(item => item.key === certification.aligns)!;
-}
-
-export interface Question {
-  id: number;
-  legacyId?: number;
-  certification: CertificationKey;
-  type: QuestionType;
-  question: string;
-  options: Record<string, string>;
-  correct_answer: string[];
-  answer_text: string;
-  community_vote: string;
-  domain: string;
-  mode: QuestionMode;
-  multipleSelect?: boolean;
-  table?: { headers: string[]; rows: string[][] };
-  interaction?: InteractionDefinition;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { CertificationKey } from '../data/questions';
-import { CERTIFICATIONS } from '../data/questions';
+import { CERTIFICATIONS } from '../data/questionCatalog';
+import type { CertificationKey } from '../types/questions';
 
 const STORAGE_KEY = 'skillpath_active_cert';
 

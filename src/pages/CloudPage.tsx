@@ -1,6 +1,6 @@
 import { AppHeader } from '../components/AppHeader';
 import { LearningEntryCard } from '../components/LearningEntryCard';
-import type { CertificationKey } from '../data/questions';
+import type { CertificationKey } from '../types/questions';
 
 interface Props {
   onNavigate: (page: string, params?: Record<string, string>) => void;

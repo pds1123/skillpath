@@ -1,5 +1,5 @@
-import { CERTIFICATIONS, questionsForCert } from '../data/questions';
-import type { CertificationKey } from '../data/questions';
+import { CERTIFICATIONS, questionsForCert } from '../data/questionCatalog';
+import type { CertificationKey } from '../types/questions';
 import type { ProgressState } from '../hooks/useProgress';
 
 interface Props {

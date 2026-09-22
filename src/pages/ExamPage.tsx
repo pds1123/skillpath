@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { CERTIFICATIONS, quizQuestionsForCert } from '../data/questions';
-import type { Question, CertificationKey } from '../data/questions';
+import { CERTIFICATIONS, quizQuestionsForCert } from '../data/questionCatalog';
+import type { Question, CertificationKey } from '../types/questions';
 import { CTFL_QUESTION_IMAGES, QUESTION_IMAGES } from '../data/questionImages';
 import { Timer } from '../components/Timer';
 import { InteractiveExam } from '../components/InteractiveExam';

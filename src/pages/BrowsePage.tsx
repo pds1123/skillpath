@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import type React from 'react';
-import { questionsForCert, domainsForCert } from '../data/questions';
-import type { Question, CertificationKey } from '../data/questions';
+import { questionsForCert, domainsForCert } from '../data/questionCatalog';
+import type { Question, CertificationKey } from '../types/questions';
 import type { ProgressState } from '../hooks/useProgress';
 import { CTFL_QUESTION_IMAGES, QUESTION_IMAGES } from '../data/questionImages';
 import { InteractiveExam } from '../components/InteractiveExam';
