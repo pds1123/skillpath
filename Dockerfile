@@ -25,7 +25,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install --yes --no-install-recommends curl libsqlite3-0 \
+    && apt-get install --yes --no-install-recommends curl libsqlite3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=backend-build /app/publish ./
