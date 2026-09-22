@@ -105,10 +105,30 @@ app.UseSwaggerUI(options =>
     options.SwaggerEndpoint("/api/swagger/v1/swagger.json", "SkillPath API v1");
     options.DocumentTitle = "SkillPath API";
 });
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
+app.MapFallback(async context =>
+{
+    if (context.Request.Path.StartsWithSegments("/api"))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+
+    var indexPath = Path.Combine(app.Environment.WebRootPath ?? string.Empty, "index.html");
+    if (!File.Exists(indexPath))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+
+    context.Response.ContentType = "text/html; charset=utf-8";
+    await context.Response.SendFileAsync(indexPath);
+});
 
 app.Run();
 

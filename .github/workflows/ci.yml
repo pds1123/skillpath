@@ -82,6 +82,17 @@ jobs:
           path: TestResults/
           if-no-files-found: error
 
+  container:
+    name: Container build
+    needs: [frontend, backend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build production image
+        run: docker build --tag skillpath:ci .
+
   browser:
     name: Browser and accessibility
     needs: [frontend, backend]

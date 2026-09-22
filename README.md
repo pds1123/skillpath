@@ -128,6 +128,36 @@ Open:
 
 The API applies pending migrations and creates the local SQLite database automatically on startup.
 
+## Run with Docker
+
+Docker packages the React frontend and ASP.NET Core API into one application. Only Docker Desktop is required; Node.js and the .NET SDK do not need to be installed on the host for this mode.
+
+Start it with:
+
+```bash
+npm run docker:up
+```
+
+Then open:
+
+- Application: <http://127.0.0.1:8080>
+- API health: <http://127.0.0.1:8080/api/health>
+- Swagger UI: <http://127.0.0.1:8080/api/swagger>
+
+Stop it with:
+
+```bash
+npm run docker:down
+```
+
+The SQLite database is stored in the named Docker volume `skillpath-data`, so rebuilding or stopping the container does not remove accounts or progress. To promote an existing account to administrator, set `ADMIN_BOOTSTRAP_EMAIL` before starting the container:
+
+```bash
+ADMIN_BOOTSTRAP_EMAIL=you@example.com npm run docker:up
+```
+
+Private question banks are intentionally excluded from the image. The public curriculum still starts normally; local private question data must be imported separately and must never be published inside a container image.
+
 ## Local administrator
 
 Register an account through the application, then restart the API with its email configured as the bootstrap administrator:
@@ -249,6 +279,8 @@ Frontend lint, build, and component coverage
                     +
 Backend unit tests, API integration tests, and clean migration
                     ↓
+Production Docker image build
+                    +
 Playwright user flows and Axe accessibility checks
 ```
 

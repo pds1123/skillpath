@@ -20,6 +20,9 @@
     "test:backend": "dotnet test backend/SkillPath.Api.Tests/SkillPath.Api.Tests.csproj --configuration Release",
     "test:e2e": "playwright test",
     "test:all": "npm run lint && npm run build && npm run test:unit:coverage && npm run test:backend && npm run test:e2e",
+    "docker:build": "docker build --tag skillpath:local .",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down",
     "preview": "vite preview"
   },
   "dependencies": {

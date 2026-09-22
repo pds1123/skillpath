@@ -1,0 +1,17 @@
+services:
+  skillpath:
+    build:
+      context: .
+    image: skillpath:local
+    ports:
+      - "${SKILLPATH_PORT:-8080}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__SkillPath: Data Source=/app/App_Data/skillpath.db
+      Admin__BootstrapEmail: ${ADMIN_BOOTSTRAP_EMAIL:-}
+    volumes:
+      - skillpath-data:/app/App_Data
+    restart: unless-stopped
+
+volumes:
+  skillpath-data:
