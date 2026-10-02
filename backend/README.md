@@ -4,7 +4,7 @@ ASP.NET Core backend for SkillPath. It provides:
 
 - Cookie-based registration, login, logout, and current-user endpoints.
 - Server-side learning progress persistence.
-- EF Core migrations with a local SQLite database.
+- EF Core migrations with PostgreSQL.
 - A database-backed question API supporting multiple learning paths.
 - Server-side answer grading, practice sessions, and mock-exam grading.
 
@@ -13,15 +13,16 @@ ASP.NET Core backend for SkillPath. It provides:
 ```bash
 npm run db:export
 dotnet tool restore
+docker compose up -d --wait postgres
 dotnet run --project backend/SkillPath.Api
 ```
 
 The API listens on `http://127.0.0.1:5050`. Start the React app in a second terminal with `npm run dev`; Vite proxies `/api` requests to the API.
 
-The local database is created automatically at `backend/SkillPath.Api/App_Data/skillpath.db` and is excluded from Git. On the first run:
+The local database runs in the `postgres:17-alpine` Compose service and persists in the `skillpath-postgres-data` volume. On the first run:
 
 1. EF Core applies migrations.
-2. Existing users and progress are imported from the old `skillpath.json`, if present.
+2. Existing users and progress can be imported from the old `skillpath.json`, if present.
 3. `question-bank.seed.json` is imported when the question tables are empty.
 
 `npm run db:export` converts the private TypeScript question files into the local seed file. The seed file remains under `App_Data` and is not committed.
@@ -61,4 +62,4 @@ The matching account is promoted at startup. Keep this value in local environmen
 
 Question list responses do not contain correct answers. Correct answers and explanations are returned only after the answer is submitted for server-side grading.
 
-SQLite is used for local development. The domain model mirrors `database/schema.sql`, so production can move to SQL Server or another relational provider through a provider-specific EF Core migration. Before public deployment, also add CSRF protection, rate limiting, email verification, password reset, and production secrets/configuration.
+PostgreSQL is used consistently for local development, disposable integration-test databases, CI, and future cloud hosting. JSON documents are stored as `jsonb`. A Neon connection string can be supplied through .NET user secrets or `ConnectionStrings__SkillPath`; it must never be committed. Before public deployment, also add CSRF protection, rate limiting, email verification, password reset, and production secrets/configuration.

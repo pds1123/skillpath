@@ -20,7 +20,7 @@ The product is organised around learning rather than a question catalogue: learn
 
 - Cookie-based registration, login, logout, and current-user sessions.
 - Server-side progress persistence for signed-in users.
-- SQLite database managed through Entity Framework Core migrations.
+- PostgreSQL database managed through Entity Framework Core migrations.
 - Database-backed question APIs for multiple learning paths.
 - A server-graded question engine with explicit formats for choice, selection, matching, ordering, dropdown, matrix, self-grade, and image-hotspot questions.
 - Public question responses omit solutions; exact submissions and solutions are returned only through grading or reveal endpoints.
@@ -47,7 +47,7 @@ ASP.NET Core API
     │
     │  Entity Framework Core
     ▼
-SQLite database
+PostgreSQL database
 ```
 
 The database models the curriculum independently from certification material:
@@ -78,7 +78,7 @@ See [backend/DATABASE_DESIGN.md](backend/DATABASE_DESIGN.md) for the full data m
 
 - ASP.NET Core on .NET 10
 - Entity Framework Core 10
-- SQLite for local development
+- PostgreSQL 17 for local, CI, and cloud environments
 - Cookie authentication with learner and admin roles
 - Swagger/OpenAPI
 
@@ -89,7 +89,8 @@ See [backend/DATABASE_DESIGN.md](backend/DATABASE_DESIGN.md) for the full data m
 - Node.js 22 or later
 - npm
 - .NET 10 SDK
-- SQLite CLI, optional for inspecting the database
+- Docker Desktop, for the local PostgreSQL database and integration tests
+- PostgreSQL client such as `psql`, optional for inspecting the database
 
 ### Install
 
@@ -104,9 +105,15 @@ If private question-bank source files are available locally, export them before 
 npm run db:export
 ```
 
-The exported seed and the resulting database stay under `backend/SkillPath.Api/App_Data/` and are excluded from Git.
+The exported private seed files stay under `backend/SkillPath.Api/App_Data/` and are excluded from Git.
 
 ### Start the application
+
+Start the local PostgreSQL database:
+
+```bash
+docker compose up -d --wait postgres
+```
 
 Run the API:
 
@@ -126,11 +133,19 @@ Open:
 - API health: <http://127.0.0.1:5050/api/health>
 - Swagger UI: <http://127.0.0.1:5050/api/swagger>
 
-The API applies pending migrations and creates the local SQLite database automatically on startup.
+The API applies pending PostgreSQL migrations and imports the available seed data automatically on startup.
+
+To use Neon instead of the local container, store its connection string outside the repository:
+
+```bash
+dotnet user-secrets --project backend/SkillPath.Api set \
+  "ConnectionStrings:SkillPath" \
+  "Host=YOUR_NEON_HOST;Database=YOUR_DATABASE;Username=YOUR_USER;Password=YOUR_PASSWORD;SSL Mode=Require"
+```
 
 ## Run with Docker
 
-Docker packages the React frontend and ASP.NET Core API into one application. Only Docker Desktop is required; Node.js and the .NET SDK do not need to be installed on the host for this mode.
+Docker packages the React frontend and ASP.NET Core API into one application and runs PostgreSQL as a separate service. Only Docker Desktop is required; Node.js and the .NET SDK do not need to be installed on the host for this mode.
 
 Start it with:
 
@@ -150,7 +165,7 @@ Stop it with:
 npm run docker:down
 ```
 
-The SQLite database is stored in the named Docker volume `skillpath-data`, so rebuilding or stopping the container does not remove accounts or progress. To promote an existing account to administrator, set `ADMIN_BOOTSTRAP_EMAIL` before starting the container:
+PostgreSQL data is stored in the named Docker volume `skillpath-postgres-data`, so rebuilding or stopping the containers does not remove accounts or progress. To promote an existing account to administrator, set `ADMIN_BOOTSTRAP_EMAIL` before starting the containers:
 
 ```bash
 ADMIN_BOOTSTRAP_EMAIL=you@example.com npm run docker:up
@@ -170,36 +185,28 @@ The matching account receives the `admin` role. Keep the email in local environm
 
 ## Inspect the database
 
-The local database is created at:
-
-```text
-backend/SkillPath.Api/App_Data/skillpath.db
-```
-
-Open it with the SQLite CLI:
+Open the local PostgreSQL database from its container:
 
 ```bash
-sqlite3 backend/SkillPath.Api/App_Data/skillpath.db
+docker compose exec postgres psql -U skillpath -d skillpath
 ```
 
 Useful commands:
 
 ```sql
-.tables
-.headers on
-.mode column
+\dt
 
-SELECT Id, Email, DisplayName, Role, Status FROM Users;
-SELECT Id, LearningPathId, Name, SortOrder, Status FROM Modules ORDER BY LearningPathId, SortOrder;
-SELECT Id, ModuleId, Title, SortOrder, Status FROM Lessons LIMIT 20;
-SELECT EntityType, EntityId, Version, ChangeType, ChangedAt FROM ContentRevisions ORDER BY ChangedAt DESC LIMIT 20;
-SELECT Id, LegacyId, InteractionType, Status FROM Questions LIMIT 20;
+SELECT "Id", "Email", "DisplayName", "Role", "Status" FROM "Users";
+SELECT "Id", "LearningPathId", "Name", "SortOrder", "Status" FROM "Modules" ORDER BY "LearningPathId", "SortOrder";
+SELECT "Id", "ModuleId", "Title", "SortOrder", "Status" FROM "Lessons" LIMIT 20;
+SELECT "EntityType", "EntityId", "Version", "ChangeType", "ChangedAt" FROM "ContentRevisions" ORDER BY "ChangedAt" DESC LIMIT 20;
+SELECT "Id", "LegacyId", "InteractionType", "Status" FROM "Questions" LIMIT 20;
 
-.schema Modules
-.quit
+\d "Modules"
+\q
 ```
 
-A SQLite viewer extension can also open the database as a table-based interface. Passwords are stored only as hashes, never as plain text.
+A PostgreSQL client such as DBeaver or TablePlus can also display the database as tables. Passwords are stored only as hashes, never as plain text.
 
 ## Main routes
 
@@ -237,7 +244,7 @@ backend/
     Models/             Database entities
     Services/           Central question validation and grading engine
   SkillPath.Api.Tests/  xUnit unit and API integration tests
-  database/             Provider-neutral database design and SQL reference
+  database/             Database design notes and the legacy SQL Server reference
 
 scripts/                Question export and source-processing utilities
 tests/e2e/              Playwright browser and Axe accessibility tests
@@ -251,7 +258,7 @@ The following are intentionally excluded from Git:
 - Full private question banks.
 - Correct-answer and interactive-question source files.
 - Question images and source PDFs.
-- SQLite databases and generated seed files.
+- Legacy SQLite databases and generated seed files.
 - Generated database diagram images.
 - Local API keys, administrator email, and editor/tool state.
 
@@ -286,7 +293,7 @@ Container startup, health, and SPA-route smoke tests
 Playwright user flows and Axe accessibility checks
 ```
 
-Test databases are isolated from the local development database. CI reports include frontend coverage, backend coverage/TRX results, and Playwright failure traces.
+API integration tests start disposable PostgreSQL containers, and browser tests use a dedicated PostgreSQL service. They never modify the local development or Neon database. CI reports include frontend coverage, backend coverage/TRX results, and Playwright failure traces.
 
 ## License
 

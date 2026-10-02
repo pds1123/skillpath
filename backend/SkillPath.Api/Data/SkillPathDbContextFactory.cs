@@ -7,10 +7,10 @@ public sealed class SkillPathDbContextFactory : IDesignTimeDbContextFactory<Skil
 {
     public SkillPathDbContext CreateDbContext(string[] args)
     {
-        SQLitePCL.raw.SetProvider(new SQLitePCL.SQLite3Provider_sqlite3());
-        var dataSource = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "skillpath.design.db");
+        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__SkillPath")
+            ?? "Host=localhost;Port=5432;Database=skillpath;Username=skillpath;Password=skillpath-dev-password";
         var options = new DbContextOptionsBuilder<SkillPathDbContext>()
-            .UseSqlite($"Data Source={dataSource}")
+            .UseNpgsql(connectionString)
             .Options;
         return new SkillPathDbContext(options);
     }

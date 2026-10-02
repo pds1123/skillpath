@@ -25,18 +25,14 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install --yes --no-install-recommends curl libsqlite3-dev \
+    && apt-get install --yes --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=backend-build /app/publish ./
 COPY --from=frontend-build /source/dist ./wwwroot
 
-RUN mkdir -p /app/App_Data \
-    && chown -R "$APP_UID":"$APP_UID" /app/App_Data
-
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
-VOLUME ["/app/App_Data"]
 
 USER $APP_UID
 

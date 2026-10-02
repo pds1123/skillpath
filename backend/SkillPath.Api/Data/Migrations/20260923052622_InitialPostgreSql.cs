@@ -1,12 +1,13 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
 namespace SkillPath.Api.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialPostgreSql : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -15,115 +16,119 @@ namespace SkillPath.Api.Data.Migrations
                 name: "Certifications",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Code = table.Column<string>(type: "TEXT", maxLength: 40, nullable: false),
-                    Name = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
-                    Provider = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
-                    MockQuestionCount = table.Column<short>(type: "INTEGER", nullable: false),
-                    Status = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Code = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Provider = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    MockQuestionCount = table.Column<short>(type: "smallint", nullable: false),
+                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Certifications", x => x.Id);
-                    table.CheckConstraint("CK_Certifications_MockQuestionCount", "MockQuestionCount > 0");
-                    table.CheckConstraint("CK_Certifications_Status", "Status IN ('active', 'retired', 'archived')");
+                    table.CheckConstraint("CK_Certifications_MockQuestionCount", "\"MockQuestionCount\" > 0");
+                    table.CheckConstraint("CK_Certifications_Status", "\"Status\" IN ('active', 'retired', 'archived')");
                 });
 
             migrationBuilder.CreateTable(
                 name: "LearningAreas",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Slug = table.Column<string>(type: "TEXT", maxLength: 80, nullable: false),
-                    Name = table.Column<string>(type: "TEXT", maxLength: 120, nullable: false),
-                    Description = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
-                    SortOrder = table.Column<int>(type: "INTEGER", nullable: false),
-                    Status = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Slug = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
+                    Name = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_LearningAreas", x => x.Id);
-                    table.CheckConstraint("CK_LearningAreas_Status", "Status IN ('planned', 'published', 'archived')");
+                    table.CheckConstraint("CK_LearningAreas_Status", "\"Status\" IN ('planned', 'published', 'archived')");
                 });
 
             migrationBuilder.CreateTable(
                 name: "Questions",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    SourceKey = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
-                    LegacyId = table.Column<int>(type: "INTEGER", nullable: false),
-                    QuestionType = table.Column<string>(type: "TEXT", maxLength: 30, nullable: false),
-                    ContentType = table.Column<string>(type: "TEXT", maxLength: 30, nullable: false),
-                    Prompt = table.Column<string>(type: "TEXT", nullable: false),
-                    Explanation = table.Column<string>(type: "TEXT", nullable: true),
-                    InteractionData = table.Column<string>(type: "TEXT", nullable: true),
-                    TableData = table.Column<string>(type: "TEXT", nullable: true),
-                    Mode = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    Difficulty = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    Status = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    SourceKey = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    SourceAttribution = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    SourceReference = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    LegacyId = table.Column<int>(type: "integer", nullable: false),
+                    QuestionType = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    InteractionType = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    ContentType = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    Prompt = table.Column<string>(type: "text", nullable: false),
+                    Explanation = table.Column<string>(type: "text", nullable: true),
+                    InteractionData = table.Column<string>(type: "jsonb", nullable: true),
+                    TableData = table.Column<string>(type: "jsonb", nullable: true),
+                    Mode = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Difficulty = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Questions", x => x.Id);
-                    table.CheckConstraint("CK_Questions_ContentType", "ContentType IN ('knowledge_check', 'practice_question', 'mock_question')");
-                    table.CheckConstraint("CK_Questions_Difficulty", "Difficulty IN ('beginner', 'intermediate', 'advanced')");
-                    table.CheckConstraint("CK_Questions_InteractionData", "InteractionData IS NULL OR json_valid(InteractionData)");
-                    table.CheckConstraint("CK_Questions_Mode", "Mode IN ('quiz', 'reveal', 'read')");
-                    table.CheckConstraint("CK_Questions_Status", "Status IN ('draft', 'published', 'archived')");
-                    table.CheckConstraint("CK_Questions_TableData", "TableData IS NULL OR json_valid(TableData)");
-                    table.CheckConstraint("CK_Questions_Type", "QuestionType IN ('multiple_choice', 'yes_no', 'drag_drop', 'hotspot', 'self_grade')");
+                    table.CheckConstraint("CK_Questions_ContentType", "\"ContentType\" IN ('knowledge_check', 'practice_question', 'mock_question')");
+                    table.CheckConstraint("CK_Questions_Difficulty", "\"Difficulty\" IN ('beginner', 'intermediate', 'advanced')");
+                    table.CheckConstraint("CK_Questions_InteractionType", "\"InteractionType\" IN ('single_choice', 'multiple_choice', 'yes_no', 'unordered_selection', 'fixed_match', 'ordering', 'dropdown', 'yes_no_matrix', 'image_self_grade', 'image_hotspot')");
+                    table.CheckConstraint("CK_Questions_Mode", "\"Mode\" IN ('quiz', 'reveal', 'read')");
+                    table.CheckConstraint("CK_Questions_Status", "\"Status\" IN ('draft', 'published', 'archived')");
+                    table.CheckConstraint("CK_Questions_Type", "\"QuestionType\" IN ('multiple_choice', 'yes_no', 'drag_drop', 'hotspot', 'self_grade')");
                 });
 
             migrationBuilder.CreateTable(
                 name: "Users",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    Email = table.Column<string>(type: "TEXT", maxLength: 320, nullable: false),
-                    NormalizedEmail = table.Column<string>(type: "TEXT", maxLength: 320, nullable: false),
-                    DisplayName = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
-                    PasswordHash = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
-                    Status = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Email = table.Column<string>(type: "character varying(320)", maxLength: 320, nullable: false),
+                    NormalizedEmail = table.Column<string>(type: "character varying(320)", maxLength: 320, nullable: false),
+                    DisplayName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    PasswordHash = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    Role = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Users", x => x.Id);
-                    table.CheckConstraint("CK_Users_Status", "Status IN ('active', 'disabled', 'deleted')");
+                    table.CheckConstraint("CK_Users_Role", "\"Role\" IN ('learner', 'admin')");
+                    table.CheckConstraint("CK_Users_Status", "\"Status\" IN ('active', 'disabled', 'deleted')");
                 });
 
             migrationBuilder.CreateTable(
                 name: "LearningPaths",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    LearningAreaId = table.Column<long>(type: "INTEGER", nullable: false),
-                    Slug = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
-                    Name = table.Column<string>(type: "TEXT", maxLength: 160, nullable: false),
-                    Description = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: true),
-                    Level = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    SortOrder = table.Column<int>(type: "INTEGER", nullable: false),
-                    Status = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    LearningAreaId = table.Column<long>(type: "bigint", nullable: false),
+                    Slug = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Name = table.Column<string>(type: "character varying(160)", maxLength: 160, nullable: false),
+                    Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    Level = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_LearningPaths", x => x.Id);
-                    table.CheckConstraint("CK_LearningPaths_Level", "Level IN ('beginner', 'intermediate', 'advanced')");
-                    table.CheckConstraint("CK_LearningPaths_Status", "Status IN ('draft', 'published', 'archived')");
+                    table.CheckConstraint("CK_LearningPaths_Level", "\"Level\" IN ('beginner', 'intermediate', 'advanced')");
+                    table.CheckConstraint("CK_LearningPaths_Status", "\"Status\" IN ('draft', 'published', 'archived')");
                     table.ForeignKey(
                         name: "FK_LearningPaths_LearningAreas_LearningAreaId",
                         column: x => x.LearningAreaId,
@@ -136,9 +141,9 @@ namespace SkillPath.Api.Data.Migrations
                 name: "CertificationQuestions",
                 columns: table => new
                 {
-                    CertificationId = table.Column<long>(type: "INTEGER", nullable: false),
-                    QuestionId = table.Column<long>(type: "INTEGER", nullable: false),
-                    DomainName = table.Column<string>(type: "TEXT", maxLength: 160, nullable: true)
+                    CertificationId = table.Column<long>(type: "bigint", nullable: false),
+                    QuestionId = table.Column<long>(type: "bigint", nullable: false),
+                    DomainName = table.Column<string>(type: "character varying(160)", maxLength: 160, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -161,13 +166,13 @@ namespace SkillPath.Api.Data.Migrations
                 name: "QuestionOptions",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    QuestionId = table.Column<long>(type: "INTEGER", nullable: false),
-                    OptionKey = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    OptionText = table.Column<string>(type: "TEXT", nullable: false),
-                    SortOrder = table.Column<short>(type: "INTEGER", nullable: false),
-                    IsCorrect = table.Column<bool>(type: "INTEGER", nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    QuestionId = table.Column<long>(type: "bigint", nullable: false),
+                    OptionKey = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    OptionText = table.Column<string>(type: "text", nullable: false),
+                    SortOrder = table.Column<short>(type: "smallint", nullable: false),
+                    IsCorrect = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -181,26 +186,54 @@ namespace SkillPath.Api.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ContentRevisions",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    EntityType = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    EntityId = table.Column<long>(type: "bigint", nullable: false),
+                    Version = table.Column<int>(type: "integer", nullable: false),
+                    ChangeType = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    SnapshotJson = table.Column<string>(type: "jsonb", nullable: false),
+                    ChangedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
+                    ChangedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ContentRevisions", x => x.Id);
+                    table.CheckConstraint("CK_ContentRevisions_ChangeType", "\"ChangeType\" IN ('seeded', 'created', 'updated', 'published', 'unpublished', 'reordered', 'archived')");
+                    table.CheckConstraint("CK_ContentRevisions_EntityType", "\"EntityType\" IN ('module', 'lesson')");
+                    table.CheckConstraint("CK_ContentRevisions_Version", "\"Version\" > 0");
+                    table.ForeignKey(
+                        name: "FK_ContentRevisions_Users_ChangedByUserId",
+                        column: x => x.ChangedByUserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ExamAttempts",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    UserId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    CertificationId = table.Column<long>(type: "INTEGER", nullable: false),
-                    Status = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    StartedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    FinishedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: true),
-                    Score = table.Column<int>(type: "INTEGER", nullable: true),
-                    Total = table.Column<int>(type: "INTEGER", nullable: true),
-                    DurationSeconds = table.Column<int>(type: "INTEGER", nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CertificationId = table.Column<long>(type: "bigint", nullable: false),
+                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    StartedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    FinishedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    Score = table.Column<int>(type: "integer", nullable: true),
+                    Total = table.Column<int>(type: "integer", nullable: true),
+                    DurationSeconds = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ExamAttempts", x => x.Id);
-                    table.CheckConstraint("CK_ExamAttempts_Duration", "DurationSeconds IS NULL OR DurationSeconds >= 0");
-                    table.CheckConstraint("CK_ExamAttempts_Score", "Score IS NULL OR Score >= 0");
-                    table.CheckConstraint("CK_ExamAttempts_Status", "Status IN ('in_progress', 'completed', 'abandoned')");
-                    table.CheckConstraint("CK_ExamAttempts_Total", "Total IS NULL OR Total > 0");
+                    table.CheckConstraint("CK_ExamAttempts_Duration", "\"DurationSeconds\" IS NULL OR \"DurationSeconds\" >= 0");
+                    table.CheckConstraint("CK_ExamAttempts_Score", "\"Score\" IS NULL OR \"Score\" >= 0");
+                    table.CheckConstraint("CK_ExamAttempts_Status", "\"Status\" IN ('in_progress', 'completed', 'abandoned')");
+                    table.CheckConstraint("CK_ExamAttempts_Total", "\"Total\" IS NULL OR \"Total\" > 0");
                     table.ForeignKey(
                         name: "FK_ExamAttempts_Certifications_CertificationId",
                         column: x => x.CertificationId,
@@ -219,15 +252,15 @@ namespace SkillPath.Api.Data.Migrations
                 name: "UserPreferences",
                 columns: table => new
                 {
-                    UserId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    TimeZone = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
-                    Theme = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false)
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    TimeZone = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Theme = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_UserPreferences", x => x.UserId);
-                    table.CheckConstraint("CK_UserPreferences_Theme", "Theme IN ('light', 'dark', 'system')");
+                    table.CheckConstraint("CK_UserPreferences_Theme", "\"Theme\" IN ('light', 'dark', 'system')");
                     table.ForeignKey(
                         name: "FK_UserPreferences_Users_UserId",
                         column: x => x.UserId,
@@ -240,10 +273,10 @@ namespace SkillPath.Api.Data.Migrations
                 name: "UserProgressDocuments",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    UserId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    Json = table.Column<string>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Json = table.Column<string>(type: "jsonb", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -260,21 +293,21 @@ namespace SkillPath.Api.Data.Migrations
                 name: "Modules",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    LearningPathId = table.Column<long>(type: "INTEGER", nullable: false),
-                    Slug = table.Column<string>(type: "TEXT", maxLength: 120, nullable: false),
-                    Name = table.Column<string>(type: "TEXT", maxLength: 160, nullable: false),
-                    Description = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: true),
-                    SortOrder = table.Column<int>(type: "INTEGER", nullable: false),
-                    Status = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    LearningPathId = table.Column<long>(type: "bigint", nullable: false),
+                    Slug = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
+                    Name = table.Column<string>(type: "character varying(160)", maxLength: 160, nullable: false),
+                    Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Modules", x => x.Id);
-                    table.CheckConstraint("CK_Modules_Status", "Status IN ('draft', 'published', 'archived')");
+                    table.CheckConstraint("CK_Modules_Status", "\"Status\" IN ('draft', 'published', 'archived')");
                     table.ForeignKey(
                         name: "FK_Modules_LearningPaths_LearningPathId",
                         column: x => x.LearningPathId,
@@ -287,18 +320,18 @@ namespace SkillPath.Api.Data.Migrations
                 name: "PracticeSessions",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    UserId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    CertificationId = table.Column<long>(type: "INTEGER", nullable: true),
-                    LearningPathId = table.Column<long>(type: "INTEGER", nullable: true),
-                    Mode = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    StartedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    FinishedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CertificationId = table.Column<long>(type: "bigint", nullable: true),
+                    LearningPathId = table.Column<long>(type: "bigint", nullable: true),
+                    Mode = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    StartedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    FinishedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_PracticeSessions", x => x.Id);
-                    table.CheckConstraint("CK_PracticeSessions_Mode", "Mode IN ('quick', 'weak_areas', 'mistakes', 'module')");
+                    table.CheckConstraint("CK_PracticeSessions_Mode", "\"Mode\" IN ('quick', 'weak_areas', 'mistakes', 'module')");
                     table.ForeignKey(
                         name: "FK_PracticeSessions_Certifications_CertificationId",
                         column: x => x.CertificationId,
@@ -323,15 +356,15 @@ namespace SkillPath.Api.Data.Migrations
                 name: "CertificationModules",
                 columns: table => new
                 {
-                    CertificationId = table.Column<long>(type: "INTEGER", nullable: false),
-                    ModuleId = table.Column<long>(type: "INTEGER", nullable: false),
-                    SortOrder = table.Column<int>(type: "INTEGER", nullable: false),
-                    Weight = table.Column<decimal>(type: "TEXT", nullable: true)
+                    CertificationId = table.Column<long>(type: "bigint", nullable: false),
+                    ModuleId = table.Column<long>(type: "bigint", nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    Weight = table.Column<decimal>(type: "numeric", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_CertificationModules", x => new { x.CertificationId, x.ModuleId });
-                    table.CheckConstraint("CK_CertificationModules_Weight", "Weight IS NULL OR (Weight >= 0 AND Weight <= 100)");
+                    table.CheckConstraint("CK_CertificationModules_Weight", "\"Weight\" IS NULL OR (\"Weight\" >= 0 AND \"Weight\" <= 100)");
                     table.ForeignKey(
                         name: "FK_CertificationModules_Certifications_CertificationId",
                         column: x => x.CertificationId,
@@ -350,24 +383,24 @@ namespace SkillPath.Api.Data.Migrations
                 name: "Lessons",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    ModuleId = table.Column<long>(type: "INTEGER", nullable: false),
-                    Slug = table.Column<string>(type: "TEXT", maxLength: 140, nullable: false),
-                    Title = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
-                    Summary = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: true),
-                    Content = table.Column<string>(type: "TEXT", nullable: false),
-                    EstimatedMinutes = table.Column<short>(type: "INTEGER", nullable: true),
-                    SortOrder = table.Column<int>(type: "INTEGER", nullable: false),
-                    Status = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ModuleId = table.Column<long>(type: "bigint", nullable: false),
+                    Slug = table.Column<string>(type: "character varying(140)", maxLength: 140, nullable: false),
+                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Summary = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    Content = table.Column<string>(type: "text", nullable: false),
+                    EstimatedMinutes = table.Column<short>(type: "smallint", nullable: true),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Lessons", x => x.Id);
-                    table.CheckConstraint("CK_Lessons_EstimatedMinutes", "EstimatedMinutes IS NULL OR EstimatedMinutes > 0");
-                    table.CheckConstraint("CK_Lessons_Status", "Status IN ('draft', 'published', 'archived')");
+                    table.CheckConstraint("CK_Lessons_EstimatedMinutes", "\"EstimatedMinutes\" IS NULL OR \"EstimatedMinutes\" > 0");
+                    table.CheckConstraint("CK_Lessons_Status", "\"Status\" IN ('draft', 'published', 'archived')");
                     table.ForeignKey(
                         name: "FK_Lessons_Modules_ModuleId",
                         column: x => x.ModuleId,
@@ -380,9 +413,9 @@ namespace SkillPath.Api.Data.Migrations
                 name: "QuestionModules",
                 columns: table => new
                 {
-                    QuestionId = table.Column<long>(type: "INTEGER", nullable: false),
-                    ModuleId = table.Column<long>(type: "INTEGER", nullable: false),
-                    IsPrimary = table.Column<bool>(type: "INTEGER", nullable: false)
+                    QuestionId = table.Column<long>(type: "bigint", nullable: false),
+                    ModuleId = table.Column<long>(type: "bigint", nullable: false),
+                    IsPrimary = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -405,22 +438,21 @@ namespace SkillPath.Api.Data.Migrations
                 name: "QuestionAttempts",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    UserId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    QuestionId = table.Column<long>(type: "INTEGER", nullable: false),
-                    PracticeSessionId = table.Column<Guid>(type: "TEXT", nullable: true),
-                    ExamAttemptId = table.Column<Guid>(type: "TEXT", nullable: true),
-                    IsCorrect = table.Column<bool>(type: "INTEGER", nullable: true),
-                    ResponseData = table.Column<string>(type: "TEXT", nullable: true),
-                    SubmittedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    DurationSeconds = table.Column<int>(type: "INTEGER", nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    QuestionId = table.Column<long>(type: "bigint", nullable: false),
+                    PracticeSessionId = table.Column<Guid>(type: "uuid", nullable: true),
+                    ExamAttemptId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsCorrect = table.Column<bool>(type: "boolean", nullable: true),
+                    ResponseData = table.Column<string>(type: "jsonb", nullable: true),
+                    SubmittedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DurationSeconds = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_QuestionAttempts", x => x.Id);
-                    table.CheckConstraint("CK_QuestionAttempts_Duration", "DurationSeconds IS NULL OR DurationSeconds >= 0");
-                    table.CheckConstraint("CK_QuestionAttempts_OneSession", "NOT (PracticeSessionId IS NOT NULL AND ExamAttemptId IS NOT NULL)");
-                    table.CheckConstraint("CK_QuestionAttempts_ResponseData", "ResponseData IS NULL OR json_valid(ResponseData)");
+                    table.CheckConstraint("CK_QuestionAttempts_Duration", "\"DurationSeconds\" IS NULL OR \"DurationSeconds\" >= 0");
+                    table.CheckConstraint("CK_QuestionAttempts_OneSession", "NOT (\"PracticeSessionId\" IS NOT NULL AND \"ExamAttemptId\" IS NOT NULL)");
                     table.ForeignKey(
                         name: "FK_QuestionAttempts_ExamAttempts_ExamAttemptId",
                         column: x => x.ExamAttemptId,
@@ -451,9 +483,9 @@ namespace SkillPath.Api.Data.Migrations
                 name: "LessonCompletions",
                 columns: table => new
                 {
-                    UserId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    LessonId = table.Column<long>(type: "INTEGER", nullable: false),
-                    CompletedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false)
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    LessonId = table.Column<long>(type: "bigint", nullable: false),
+                    CompletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -476,12 +508,12 @@ namespace SkillPath.Api.Data.Migrations
                 name: "UserPathEnrollments",
                 columns: table => new
                 {
-                    UserId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    LearningPathId = table.Column<long>(type: "INTEGER", nullable: false),
-                    CurrentLessonId = table.Column<long>(type: "INTEGER", nullable: true),
-                    StartedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    LastActivityAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    CompletedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: true)
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    LearningPathId = table.Column<long>(type: "bigint", nullable: false),
+                    CurrentLessonId = table.Column<long>(type: "bigint", nullable: true),
+                    StartedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    LastActivityAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    CompletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -510,15 +542,15 @@ namespace SkillPath.Api.Data.Migrations
                 name: "ExamAttemptQuestions",
                 columns: table => new
                 {
-                    ExamAttemptId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    Position = table.Column<short>(type: "INTEGER", nullable: false),
-                    QuestionId = table.Column<long>(type: "INTEGER", nullable: false),
-                    QuestionAttemptId = table.Column<Guid>(type: "TEXT", nullable: true)
+                    ExamAttemptId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Position = table.Column<short>(type: "smallint", nullable: false),
+                    QuestionId = table.Column<long>(type: "bigint", nullable: false),
+                    QuestionAttemptId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ExamAttemptQuestions", x => new { x.ExamAttemptId, x.Position });
-                    table.CheckConstraint("CK_ExamAttemptQuestions_Position", "Position > 0");
+                    table.CheckConstraint("CK_ExamAttemptQuestions_Position", "\"Position\" > 0");
                     table.ForeignKey(
                         name: "FK_ExamAttemptQuestions_ExamAttempts_ExamAttemptId",
                         column: x => x.ExamAttemptId,
@@ -543,8 +575,8 @@ namespace SkillPath.Api.Data.Migrations
                 name: "QuestionAttemptSelections",
                 columns: table => new
                 {
-                    QuestionAttemptId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    QuestionOptionId = table.Column<long>(type: "INTEGER", nullable: false)
+                    QuestionAttemptId = table.Column<Guid>(type: "uuid", nullable: false),
+                    QuestionOptionId = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -577,6 +609,22 @@ namespace SkillPath.Api.Data.Migrations
                 name: "IX_Certifications_Code",
                 table: "Certifications",
                 column: "Code",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ContentRevisions_ChangedByUserId",
+                table: "ContentRevisions",
+                column: "ChangedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ContentRevisions_EntityType_EntityId_ChangedAt",
+                table: "ContentRevisions",
+                columns: new[] { "EntityType", "EntityId", "ChangedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ContentRevisions_EntityType_EntityId_Version",
+                table: "ContentRevisions",
+                columns: new[] { "EntityType", "EntityId", "Version" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -707,7 +755,7 @@ namespace SkillPath.Api.Data.Migrations
                 table: "QuestionModules",
                 column: "QuestionId",
                 unique: true,
-                filter: "IsPrimary = 1");
+                filter: "\"IsPrimary\" = TRUE");
 
             migrationBuilder.CreateIndex(
                 name: "IX_QuestionOptions_QuestionId_OptionKey",
@@ -763,6 +811,9 @@ namespace SkillPath.Api.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "CertificationQuestions");
+
+            migrationBuilder.DropTable(
+                name: "ContentRevisions");
 
             migrationBuilder.DropTable(
                 name: "ExamAttemptQuestions");

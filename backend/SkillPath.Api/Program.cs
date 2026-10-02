@@ -1,13 +1,11 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using SkillPath.Api.Data;
 using SkillPath.Api.Models;
 using SkillPath.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
-SQLitePCL.raw.SetProvider(new SQLitePCL.SQLite3Provider_sqlite3());
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -23,13 +21,9 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddDbContext<SkillPathDbContext>((services, options) =>
 {
     var configuration = services.GetRequiredService<IConfiguration>();
-    var environment = services.GetRequiredService<IWebHostEnvironment>();
     var configuredConnection = configuration.GetConnectionString("SkillPath")
         ?? throw new InvalidOperationException("Connection string 'SkillPath' is missing.");
-    var sqliteConnection = new SqliteConnectionStringBuilder(configuredConnection);
-    if (!Path.IsPathRooted(sqliteConnection.DataSource))
-        sqliteConnection.DataSource = Path.Combine(environment.ContentRootPath, sqliteConnection.DataSource);
-    options.UseSqlite(sqliteConnection.ConnectionString);
+    options.UseNpgsql(configuredConnection, npgsql => npgsql.EnableRetryOnFailure());
 });
 builder.Services.AddScoped<DatabaseDataStore>();
 builder.Services.AddScoped<CurriculumRevisionService>();
@@ -66,8 +60,6 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
-
-Directory.CreateDirectory(Path.Combine(app.Environment.ContentRootPath, "App_Data"));
 
 await using (var scope = app.Services.CreateAsyncScope())
 {
@@ -110,7 +102,10 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/api/health", async (SkillPathDbContext db, CancellationToken cancellationToken) =>
+    await db.Database.CanConnectAsync(cancellationToken)
+        ? Results.Ok(new { status = "ok", database = "connected" })
+        : Results.Problem("The database is unavailable.", statusCode: StatusCodes.Status503ServiceUnavailable));
 app.MapFallback(async context =>
 {
     if (context.Request.Path.StartsWithSegments("/api"))

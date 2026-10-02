@@ -12,7 +12,7 @@ SkillPath 的数据库需要同时支持：
 - 课程完成、练习记录、错题与薄弱项
 - 模拟考试与答题回顾
 
-当前实现采用 **Entity Framework Core + SQLite** 作为本地数据库，不要求安装 Docker 或数据库服务器。生产目标仍建议使用 **SQL Server / Azure SQL**；领域模型保持一致，但需要生成 SQL Server provider 对应的 migration。旧 `skillpath.json` 只在首次启动时作为迁移来源，之后数据库成为正式数据源。
+当前实现统一采用 **Entity Framework Core + PostgreSQL**。本地开发通过 Docker Compose 运行 PostgreSQL 17，API 集成测试使用一次性 PostgreSQL 容器，CI 也验证全新的 PostgreSQL migration。未来可以直接连接 Neon 等托管 PostgreSQL，而不切换数据库 provider。旧 `skillpath.json` 只作为一次性导入来源，之后数据库成为正式数据源。
 
 ## 2. 核心原则
 

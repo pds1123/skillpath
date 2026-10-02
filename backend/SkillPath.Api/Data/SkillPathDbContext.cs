@@ -32,8 +32,8 @@ public sealed class SkillPathDbContext(DbContextOptions<SkillPathDbContext> opti
         var users = modelBuilder.Entity<AppUser>();
         users.ToTable("Users", table =>
         {
-            table.HasCheckConstraint("CK_Users_Status", "Status IN ('active', 'disabled', 'deleted')");
-            table.HasCheckConstraint("CK_Users_Role", "Role IN ('learner', 'admin')");
+            table.HasCheckConstraint("CK_Users_Status", "\"Status\" IN ('active', 'disabled', 'deleted')");
+            table.HasCheckConstraint("CK_Users_Role", "\"Role\" IN ('learner', 'admin')");
         });
         users.HasKey(x => x.Id);
         users.Property(x => x.Email).HasMaxLength(320);
@@ -45,7 +45,7 @@ public sealed class SkillPathDbContext(DbContextOptions<SkillPathDbContext> opti
         users.HasIndex(x => x.NormalizedEmail).IsUnique();
 
         var preferences = modelBuilder.Entity<UserPreference>();
-        preferences.ToTable("UserPreferences", table => table.HasCheckConstraint("CK_UserPreferences_Theme", "Theme IN ('light', 'dark', 'system')"));
+        preferences.ToTable("UserPreferences", table => table.HasCheckConstraint("CK_UserPreferences_Theme", "\"Theme\" IN ('light', 'dark', 'system')"));
         preferences.HasKey(x => x.UserId);
         preferences.Property(x => x.TimeZone).HasMaxLength(100);
         preferences.Property(x => x.Theme).HasMaxLength(20);
@@ -54,11 +54,12 @@ public sealed class SkillPathDbContext(DbContextOptions<SkillPathDbContext> opti
         var progress = modelBuilder.Entity<UserProgress>();
         progress.ToTable("UserProgressDocuments");
         progress.HasKey(x => x.Id);
+        progress.Property(x => x.Json).HasColumnType("jsonb");
         progress.HasIndex(x => x.UserId).IsUnique();
         progress.HasOne<AppUser>().WithOne().HasForeignKey<UserProgress>(x => x.UserId);
 
         var areas = modelBuilder.Entity<LearningArea>();
-        areas.ToTable("LearningAreas", table => table.HasCheckConstraint("CK_LearningAreas_Status", "Status IN ('planned', 'published', 'archived')"));
+        areas.ToTable("LearningAreas", table => table.HasCheckConstraint("CK_LearningAreas_Status", "\"Status\" IN ('planned', 'published', 'archived')"));
         areas.HasKey(x => x.Id);
         areas.Property(x => x.Slug).HasMaxLength(80);
         areas.Property(x => x.Name).HasMaxLength(120);
@@ -69,8 +70,8 @@ public sealed class SkillPathDbContext(DbContextOptions<SkillPathDbContext> opti
         var paths = modelBuilder.Entity<LearningPath>();
         paths.ToTable("LearningPaths", table =>
         {
-            table.HasCheckConstraint("CK_LearningPaths_Level", "Level IN ('beginner', 'intermediate', 'advanced')");
-            table.HasCheckConstraint("CK_LearningPaths_Status", "Status IN ('draft', 'published', 'archived')");
+            table.HasCheckConstraint("CK_LearningPaths_Level", "\"Level\" IN ('beginner', 'intermediate', 'advanced')");
+            table.HasCheckConstraint("CK_LearningPaths_Status", "\"Status\" IN ('draft', 'published', 'archived')");
         });
         paths.HasKey(x => x.Id);
         paths.Property(x => x.Slug).HasMaxLength(100);
@@ -83,7 +84,7 @@ public sealed class SkillPathDbContext(DbContextOptions<SkillPathDbContext> opti
         paths.HasOne<LearningArea>().WithMany().HasForeignKey(x => x.LearningAreaId);
 
         var modules = modelBuilder.Entity<LearningModule>();
-        modules.ToTable("Modules", table => table.HasCheckConstraint("CK_Modules_Status", "Status IN ('draft', 'published', 'archived')"));
+        modules.ToTable("Modules", table => table.HasCheckConstraint("CK_Modules_Status", "\"Status\" IN ('draft', 'published', 'archived')"));
         modules.HasKey(x => x.Id);
         modules.Property(x => x.Slug).HasMaxLength(120);
         modules.Property(x => x.Name).HasMaxLength(160);
@@ -96,8 +97,8 @@ public sealed class SkillPathDbContext(DbContextOptions<SkillPathDbContext> opti
         var lessons = modelBuilder.Entity<Lesson>();
         lessons.ToTable("Lessons", table =>
         {
-            table.HasCheckConstraint("CK_Lessons_EstimatedMinutes", "EstimatedMinutes IS NULL OR EstimatedMinutes > 0");
-            table.HasCheckConstraint("CK_Lessons_Status", "Status IN ('draft', 'published', 'archived')");
+            table.HasCheckConstraint("CK_Lessons_EstimatedMinutes", "\"EstimatedMinutes\" IS NULL OR \"EstimatedMinutes\" > 0");
+            table.HasCheckConstraint("CK_Lessons_Status", "\"Status\" IN ('draft', 'published', 'archived')");
         });
         lessons.HasKey(x => x.Id);
         lessons.Property(x => x.Slug).HasMaxLength(140);
@@ -111,14 +112,14 @@ public sealed class SkillPathDbContext(DbContextOptions<SkillPathDbContext> opti
         var revisions = modelBuilder.Entity<ContentRevision>();
         revisions.ToTable("ContentRevisions", table =>
         {
-            table.HasCheckConstraint("CK_ContentRevisions_EntityType", "EntityType IN ('module', 'lesson')");
-            table.HasCheckConstraint("CK_ContentRevisions_Version", "Version > 0");
-            table.HasCheckConstraint("CK_ContentRevisions_ChangeType", "ChangeType IN ('seeded', 'created', 'updated', 'published', 'unpublished', 'reordered', 'archived')");
-            table.HasCheckConstraint("CK_ContentRevisions_Snapshot", "json_valid(SnapshotJson)");
+            table.HasCheckConstraint("CK_ContentRevisions_EntityType", "\"EntityType\" IN ('module', 'lesson')");
+            table.HasCheckConstraint("CK_ContentRevisions_Version", "\"Version\" > 0");
+            table.HasCheckConstraint("CK_ContentRevisions_ChangeType", "\"ChangeType\" IN ('seeded', 'created', 'updated', 'published', 'unpublished', 'reordered', 'archived')");
         });
         revisions.HasKey(x => x.Id);
         revisions.Property(x => x.EntityType).HasMaxLength(20);
         revisions.Property(x => x.ChangeType).HasMaxLength(20);
+        revisions.Property(x => x.SnapshotJson).HasColumnType("jsonb");
         revisions.HasIndex(x => new { x.EntityType, x.EntityId, x.Version }).IsUnique();
         revisions.HasIndex(x => new { x.EntityType, x.EntityId, x.ChangedAt });
         revisions.HasOne<AppUser>().WithMany().HasForeignKey(x => x.ChangedByUserId);
@@ -126,8 +127,8 @@ public sealed class SkillPathDbContext(DbContextOptions<SkillPathDbContext> opti
         var certifications = modelBuilder.Entity<Certification>();
         certifications.ToTable("Certifications", table =>
         {
-            table.HasCheckConstraint("CK_Certifications_MockQuestionCount", "MockQuestionCount > 0");
-            table.HasCheckConstraint("CK_Certifications_Status", "Status IN ('active', 'retired', 'archived')");
+            table.HasCheckConstraint("CK_Certifications_MockQuestionCount", "\"MockQuestionCount\" > 0");
+            table.HasCheckConstraint("CK_Certifications_Status", "\"Status\" IN ('active', 'retired', 'archived')");
         });
         certifications.HasKey(x => x.Id);
         certifications.Property(x => x.Code).HasMaxLength(40);
@@ -137,7 +138,7 @@ public sealed class SkillPathDbContext(DbContextOptions<SkillPathDbContext> opti
         certifications.HasIndex(x => x.Code).IsUnique();
 
         var certificationModules = modelBuilder.Entity<CertificationModule>();
-        certificationModules.ToTable("CertificationModules", table => table.HasCheckConstraint("CK_CertificationModules_Weight", "Weight IS NULL OR (Weight >= 0 AND Weight <= 100)"));
+        certificationModules.ToTable("CertificationModules", table => table.HasCheckConstraint("CK_CertificationModules_Weight", "\"Weight\" IS NULL OR (\"Weight\" >= 0 AND \"Weight\" <= 100)"));
         certificationModules.HasKey(x => new { x.CertificationId, x.ModuleId });
         certificationModules.HasOne<Certification>().WithMany().HasForeignKey(x => x.CertificationId);
         certificationModules.HasOne<LearningModule>().WithMany().HasForeignKey(x => x.ModuleId);
@@ -145,14 +146,12 @@ public sealed class SkillPathDbContext(DbContextOptions<SkillPathDbContext> opti
         var questions = modelBuilder.Entity<Question>();
         questions.ToTable("Questions", table =>
         {
-            table.HasCheckConstraint("CK_Questions_Type", "QuestionType IN ('multiple_choice', 'yes_no', 'drag_drop', 'hotspot', 'self_grade')");
-            table.HasCheckConstraint("CK_Questions_InteractionType", "InteractionType IN ('single_choice', 'multiple_choice', 'yes_no', 'unordered_selection', 'fixed_match', 'ordering', 'dropdown', 'yes_no_matrix', 'image_self_grade', 'image_hotspot')");
-            table.HasCheckConstraint("CK_Questions_ContentType", "ContentType IN ('knowledge_check', 'practice_question', 'mock_question')");
-            table.HasCheckConstraint("CK_Questions_Mode", "Mode IN ('quiz', 'reveal', 'read')");
-            table.HasCheckConstraint("CK_Questions_Difficulty", "Difficulty IN ('beginner', 'intermediate', 'advanced')");
-            table.HasCheckConstraint("CK_Questions_Status", "Status IN ('draft', 'published', 'archived')");
-            table.HasCheckConstraint("CK_Questions_InteractionData", "InteractionData IS NULL OR json_valid(InteractionData)");
-            table.HasCheckConstraint("CK_Questions_TableData", "TableData IS NULL OR json_valid(TableData)");
+            table.HasCheckConstraint("CK_Questions_Type", "\"QuestionType\" IN ('multiple_choice', 'yes_no', 'drag_drop', 'hotspot', 'self_grade')");
+            table.HasCheckConstraint("CK_Questions_InteractionType", "\"InteractionType\" IN ('single_choice', 'multiple_choice', 'yes_no', 'unordered_selection', 'fixed_match', 'ordering', 'dropdown', 'yes_no_matrix', 'image_self_grade', 'image_hotspot')");
+            table.HasCheckConstraint("CK_Questions_ContentType", "\"ContentType\" IN ('knowledge_check', 'practice_question', 'mock_question')");
+            table.HasCheckConstraint("CK_Questions_Mode", "\"Mode\" IN ('quiz', 'reveal', 'read')");
+            table.HasCheckConstraint("CK_Questions_Difficulty", "\"Difficulty\" IN ('beginner', 'intermediate', 'advanced')");
+            table.HasCheckConstraint("CK_Questions_Status", "\"Status\" IN ('draft', 'published', 'archived')");
         });
         questions.HasKey(x => x.Id);
         questions.Property(x => x.SourceKey).HasMaxLength(100);
@@ -164,6 +163,8 @@ public sealed class SkillPathDbContext(DbContextOptions<SkillPathDbContext> opti
         questions.Property(x => x.Mode).HasMaxLength(20);
         questions.Property(x => x.Difficulty).HasMaxLength(20);
         questions.Property(x => x.Status).HasMaxLength(20);
+        questions.Property(x => x.InteractionData).HasColumnType("jsonb");
+        questions.Property(x => x.TableData).HasColumnType("jsonb");
         questions.HasIndex(x => x.SourceKey).IsUnique();
 
         var options = modelBuilder.Entity<QuestionOption>();
@@ -177,7 +178,7 @@ public sealed class SkillPathDbContext(DbContextOptions<SkillPathDbContext> opti
         var questionModules = modelBuilder.Entity<QuestionModule>();
         questionModules.ToTable("QuestionModules");
         questionModules.HasKey(x => new { x.QuestionId, x.ModuleId });
-        questionModules.HasIndex(x => x.QuestionId).IsUnique().HasFilter("IsPrimary = 1");
+        questionModules.HasIndex(x => x.QuestionId).IsUnique().HasFilter("\"IsPrimary\" = TRUE");
         questionModules.HasIndex(x => new { x.ModuleId, x.QuestionId });
         questionModules.HasOne<Question>().WithMany().HasForeignKey(x => x.QuestionId);
         questionModules.HasOne<LearningModule>().WithMany().HasForeignKey(x => x.ModuleId);
@@ -206,7 +207,7 @@ public sealed class SkillPathDbContext(DbContextOptions<SkillPathDbContext> opti
         completions.HasOne<Lesson>().WithMany().HasForeignKey(x => x.LessonId);
 
         var practiceSessions = modelBuilder.Entity<PracticeSession>();
-        practiceSessions.ToTable("PracticeSessions", table => table.HasCheckConstraint("CK_PracticeSessions_Mode", "Mode IN ('quick', 'weak_areas', 'mistakes', 'module')"));
+        practiceSessions.ToTable("PracticeSessions", table => table.HasCheckConstraint("CK_PracticeSessions_Mode", "\"Mode\" IN ('quick', 'weak_areas', 'mistakes', 'module')"));
         practiceSessions.HasKey(x => x.Id);
         practiceSessions.Property(x => x.Mode).HasMaxLength(20);
         practiceSessions.HasIndex(x => new { x.UserId, x.StartedAt });
@@ -217,10 +218,10 @@ public sealed class SkillPathDbContext(DbContextOptions<SkillPathDbContext> opti
         var examAttempts = modelBuilder.Entity<ExamAttemptRecord>();
         examAttempts.ToTable("ExamAttempts", table =>
         {
-            table.HasCheckConstraint("CK_ExamAttempts_Status", "Status IN ('in_progress', 'completed', 'abandoned')");
-            table.HasCheckConstraint("CK_ExamAttempts_Score", "Score IS NULL OR Score >= 0");
-            table.HasCheckConstraint("CK_ExamAttempts_Total", "Total IS NULL OR Total > 0");
-            table.HasCheckConstraint("CK_ExamAttempts_Duration", "DurationSeconds IS NULL OR DurationSeconds >= 0");
+            table.HasCheckConstraint("CK_ExamAttempts_Status", "\"Status\" IN ('in_progress', 'completed', 'abandoned')");
+            table.HasCheckConstraint("CK_ExamAttempts_Score", "\"Score\" IS NULL OR \"Score\" >= 0");
+            table.HasCheckConstraint("CK_ExamAttempts_Total", "\"Total\" IS NULL OR \"Total\" > 0");
+            table.HasCheckConstraint("CK_ExamAttempts_Duration", "\"DurationSeconds\" IS NULL OR \"DurationSeconds\" >= 0");
         });
         examAttempts.HasKey(x => x.Id);
         examAttempts.Property(x => x.Status).HasMaxLength(20);
@@ -231,11 +232,11 @@ public sealed class SkillPathDbContext(DbContextOptions<SkillPathDbContext> opti
         var attempts = modelBuilder.Entity<QuestionAttempt>();
         attempts.ToTable("QuestionAttempts", table =>
         {
-            table.HasCheckConstraint("CK_QuestionAttempts_ResponseData", "ResponseData IS NULL OR json_valid(ResponseData)");
-            table.HasCheckConstraint("CK_QuestionAttempts_Duration", "DurationSeconds IS NULL OR DurationSeconds >= 0");
-            table.HasCheckConstraint("CK_QuestionAttempts_OneSession", "NOT (PracticeSessionId IS NOT NULL AND ExamAttemptId IS NOT NULL)");
+            table.HasCheckConstraint("CK_QuestionAttempts_Duration", "\"DurationSeconds\" IS NULL OR \"DurationSeconds\" >= 0");
+            table.HasCheckConstraint("CK_QuestionAttempts_OneSession", "NOT (\"PracticeSessionId\" IS NOT NULL AND \"ExamAttemptId\" IS NOT NULL)");
         });
         attempts.HasKey(x => x.Id);
+        attempts.Property(x => x.ResponseData).HasColumnType("jsonb");
         attempts.HasIndex(x => new { x.UserId, x.QuestionId, x.SubmittedAt });
         attempts.HasIndex(x => new { x.PracticeSessionId, x.SubmittedAt });
         attempts.HasIndex(x => new { x.ExamAttemptId, x.SubmittedAt });
@@ -252,7 +253,7 @@ public sealed class SkillPathDbContext(DbContextOptions<SkillPathDbContext> opti
         selections.HasOne<QuestionOption>().WithMany().HasForeignKey(x => x.QuestionOptionId);
 
         var examQuestions = modelBuilder.Entity<ExamAttemptQuestion>();
-        examQuestions.ToTable("ExamAttemptQuestions", table => table.HasCheckConstraint("CK_ExamAttemptQuestions_Position", "Position > 0"));
+        examQuestions.ToTable("ExamAttemptQuestions", table => table.HasCheckConstraint("CK_ExamAttemptQuestions_Position", "\"Position\" > 0"));
         examQuestions.HasKey(x => new { x.ExamAttemptId, x.Position });
         examQuestions.HasIndex(x => new { x.ExamAttemptId, x.QuestionId }).IsUnique();
         examQuestions.HasIndex(x => x.QuestionAttemptId).IsUnique();

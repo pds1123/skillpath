@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SkillPath.Api.Data;
 
 #nullable disable
@@ -15,49 +16,53 @@ namespace SkillPath.Api.Data.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.10");
+            modelBuilder
+                .HasAnnotation("ProductVersion", "10.0.4")
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
+
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("SkillPath.Api.Models.AppUser", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("DisplayName")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(320)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(320)");
 
                     b.Property<string>("NormalizedEmail")
                         .IsRequired()
                         .HasMaxLength(320)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(320)");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -66,9 +71,9 @@ namespace SkillPath.Api.Data.Migrations
 
                     b.ToTable("Users", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Users_Role", "Role IN ('learner', 'admin')");
+                            t.HasCheckConstraint("CK_Users_Role", "\"Role\" IN ('learner', 'admin')");
 
-                            t.HasCheckConstraint("CK_Users_Status", "Status IN ('active', 'disabled', 'deleted')");
+                            t.HasCheckConstraint("CK_Users_Status", "\"Status\" IN ('active', 'disabled', 'deleted')");
                         });
                 });
 
@@ -76,36 +81,38 @@ namespace SkillPath.Api.Data.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(40)");
 
                     b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<short>("MockQuestionCount")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("smallint");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("Provider")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -114,25 +121,25 @@ namespace SkillPath.Api.Data.Migrations
 
                     b.ToTable("Certifications", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Certifications_MockQuestionCount", "MockQuestionCount > 0");
+                            t.HasCheckConstraint("CK_Certifications_MockQuestionCount", "\"MockQuestionCount\" > 0");
 
-                            t.HasCheckConstraint("CK_Certifications_Status", "Status IN ('active', 'retired', 'archived')");
+                            t.HasCheckConstraint("CK_Certifications_Status", "\"Status\" IN ('active', 'retired', 'archived')");
                         });
                 });
 
             modelBuilder.Entity("SkillPath.Api.Models.CertificationModule", b =>
                 {
                     b.Property<long>("CertificationId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
 
                     b.Property<long>("ModuleId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<decimal?>("Weight")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("numeric");
 
                     b.HasKey("CertificationId", "ModuleId");
 
@@ -140,21 +147,21 @@ namespace SkillPath.Api.Data.Migrations
 
                     b.ToTable("CertificationModules", null, t =>
                         {
-                            t.HasCheckConstraint("CK_CertificationModules_Weight", "Weight IS NULL OR (Weight >= 0 AND Weight <= 100)");
+                            t.HasCheckConstraint("CK_CertificationModules_Weight", "\"Weight\" IS NULL OR (\"Weight\" >= 0 AND \"Weight\" <= 100)");
                         });
                 });
 
             modelBuilder.Entity("SkillPath.Api.Models.CertificationQuestion", b =>
                 {
                     b.Property<long>("CertificationId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
 
                     b.Property<long>("QuestionId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
 
                     b.Property<string>("DomainName")
                         .HasMaxLength(160)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(160)");
 
                     b.HasKey("CertificationId", "QuestionId");
 
@@ -167,33 +174,35 @@ namespace SkillPath.Api.Data.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("ChangeType")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTimeOffset>("ChangedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("ChangedByUserId")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("uuid");
 
                     b.Property<long>("EntityId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
 
                     b.Property<string>("EntityType")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("SnapshotJson")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("jsonb");
 
                     b.Property<int>("Version")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -206,29 +215,27 @@ namespace SkillPath.Api.Data.Migrations
 
                     b.ToTable("ContentRevisions", null, t =>
                         {
-                            t.HasCheckConstraint("CK_ContentRevisions_ChangeType", "ChangeType IN ('seeded', 'created', 'updated', 'published', 'unpublished', 'reordered', 'archived')");
+                            t.HasCheckConstraint("CK_ContentRevisions_ChangeType", "\"ChangeType\" IN ('seeded', 'created', 'updated', 'published', 'unpublished', 'reordered', 'archived')");
 
-                            t.HasCheckConstraint("CK_ContentRevisions_EntityType", "EntityType IN ('module', 'lesson')");
+                            t.HasCheckConstraint("CK_ContentRevisions_EntityType", "\"EntityType\" IN ('module', 'lesson')");
 
-                            t.HasCheckConstraint("CK_ContentRevisions_Snapshot", "json_valid(SnapshotJson)");
-
-                            t.HasCheckConstraint("CK_ContentRevisions_Version", "Version > 0");
+                            t.HasCheckConstraint("CK_ContentRevisions_Version", "\"Version\" > 0");
                         });
                 });
 
             modelBuilder.Entity("SkillPath.Api.Models.ExamAttemptQuestion", b =>
                 {
                     b.Property<Guid>("ExamAttemptId")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("uuid");
 
                     b.Property<short>("Position")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("smallint");
 
                     b.Property<Guid?>("QuestionAttemptId")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("uuid");
 
                     b.Property<long>("QuestionId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
 
                     b.HasKey("ExamAttemptId", "Position");
 
@@ -242,7 +249,7 @@ namespace SkillPath.Api.Data.Migrations
 
                     b.ToTable("ExamAttemptQuestions", null, t =>
                         {
-                            t.HasCheckConstraint("CK_ExamAttemptQuestions_Position", "Position > 0");
+                            t.HasCheckConstraint("CK_ExamAttemptQuestions_Position", "\"Position\" > 0");
                         });
                 });
 
@@ -250,33 +257,33 @@ namespace SkillPath.Api.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("uuid");
 
                     b.Property<long>("CertificationId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
 
                     b.Property<int?>("DurationSeconds")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<DateTimeOffset?>("FinishedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int?>("Score")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<DateTimeOffset>("StartedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<int?>("Total")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -286,13 +293,13 @@ namespace SkillPath.Api.Data.Migrations
 
                     b.ToTable("ExamAttempts", null, t =>
                         {
-                            t.HasCheckConstraint("CK_ExamAttempts_Duration", "DurationSeconds IS NULL OR DurationSeconds >= 0");
+                            t.HasCheckConstraint("CK_ExamAttempts_Duration", "\"DurationSeconds\" IS NULL OR \"DurationSeconds\" >= 0");
 
-                            t.HasCheckConstraint("CK_ExamAttempts_Score", "Score IS NULL OR Score >= 0");
+                            t.HasCheckConstraint("CK_ExamAttempts_Score", "\"Score\" IS NULL OR \"Score\" >= 0");
 
-                            t.HasCheckConstraint("CK_ExamAttempts_Status", "Status IN ('in_progress', 'completed', 'abandoned')");
+                            t.HasCheckConstraint("CK_ExamAttempts_Status", "\"Status\" IN ('in_progress', 'completed', 'abandoned')");
 
-                            t.HasCheckConstraint("CK_ExamAttempts_Total", "Total IS NULL OR Total > 0");
+                            t.HasCheckConstraint("CK_ExamAttempts_Total", "\"Total\" IS NULL OR \"Total\" > 0");
                         });
                 });
 
@@ -300,35 +307,37 @@ namespace SkillPath.Api.Data.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(120)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(80)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -337,7 +346,7 @@ namespace SkillPath.Api.Data.Migrations
 
                     b.ToTable("LearningAreas", null, t =>
                         {
-                            t.HasCheckConstraint("CK_LearningAreas_Status", "Status IN ('planned', 'published', 'archived')");
+                            t.HasCheckConstraint("CK_LearningAreas_Status", "\"Status\" IN ('planned', 'published', 'archived')");
                         });
                 });
 
@@ -345,38 +354,40 @@ namespace SkillPath.Api.Data.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<long>("LearningPathId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(160)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(160)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(120)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(120)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -388,7 +399,7 @@ namespace SkillPath.Api.Data.Migrations
 
                     b.ToTable("Modules", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Modules_Status", "Status IN ('draft', 'published', 'archived')");
+                            t.HasCheckConstraint("CK_Modules_Status", "\"Status\" IN ('draft', 'published', 'archived')");
                         });
                 });
 
@@ -396,43 +407,45 @@ namespace SkillPath.Api.Data.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<long>("LearningAreaId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Level")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(160)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(160)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -443,9 +456,9 @@ namespace SkillPath.Api.Data.Migrations
 
                     b.ToTable("LearningPaths", null, t =>
                         {
-                            t.HasCheckConstraint("CK_LearningPaths_Level", "Level IN ('beginner', 'intermediate', 'advanced')");
+                            t.HasCheckConstraint("CK_LearningPaths_Level", "\"Level\" IN ('beginner', 'intermediate', 'advanced')");
 
-                            t.HasCheckConstraint("CK_LearningPaths_Status", "Status IN ('draft', 'published', 'archived')");
+                            t.HasCheckConstraint("CK_LearningPaths_Status", "\"Status\" IN ('draft', 'published', 'archived')");
                         });
                 });
 
@@ -453,45 +466,47 @@ namespace SkillPath.Api.Data.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Content")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<short?>("EstimatedMinutes")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("smallint");
 
                     b.Property<long>("ModuleId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(140)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(140)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("Summary")
                         .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -503,22 +518,22 @@ namespace SkillPath.Api.Data.Migrations
 
                     b.ToTable("Lessons", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Lessons_EstimatedMinutes", "EstimatedMinutes IS NULL OR EstimatedMinutes > 0");
+                            t.HasCheckConstraint("CK_Lessons_EstimatedMinutes", "\"EstimatedMinutes\" IS NULL OR \"EstimatedMinutes\" > 0");
 
-                            t.HasCheckConstraint("CK_Lessons_Status", "Status IN ('draft', 'published', 'archived')");
+                            t.HasCheckConstraint("CK_Lessons_Status", "\"Status\" IN ('draft', 'published', 'archived')");
                         });
                 });
 
             modelBuilder.Entity("SkillPath.Api.Models.LessonCompletion", b =>
                 {
                     b.Property<Guid>("UserId")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("uuid");
 
                     b.Property<long>("LessonId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
 
                     b.Property<DateTimeOffset>("CompletedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("UserId", "LessonId");
 
@@ -533,27 +548,27 @@ namespace SkillPath.Api.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("uuid");
 
                     b.Property<long?>("CertificationId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
 
                     b.Property<DateTimeOffset?>("FinishedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long?>("LearningPathId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Mode")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTimeOffset>("StartedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -565,7 +580,7 @@ namespace SkillPath.Api.Data.Migrations
 
                     b.ToTable("PracticeSessions", null, t =>
                         {
-                            t.HasCheckConstraint("CK_PracticeSessions_Mode", "Mode IN ('quick', 'weak_areas', 'mistakes', 'module')");
+                            t.HasCheckConstraint("CK_PracticeSessions_Mode", "\"Mode\" IN ('quick', 'weak_areas', 'mistakes', 'module')");
                         });
                 });
 
@@ -573,73 +588,75 @@ namespace SkillPath.Api.Data.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("ContentType")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Difficulty")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("Explanation")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("InteractionData")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("jsonb");
 
                     b.Property<string>("InteractionType")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int>("LegacyId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Mode")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("Prompt")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("QuestionType")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("SourceAttribution")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("SourceKey")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("SourceReference")
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("TableData")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("jsonb");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -648,21 +665,17 @@ namespace SkillPath.Api.Data.Migrations
 
                     b.ToTable("Questions", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Questions_ContentType", "ContentType IN ('knowledge_check', 'practice_question', 'mock_question')");
+                            t.HasCheckConstraint("CK_Questions_ContentType", "\"ContentType\" IN ('knowledge_check', 'practice_question', 'mock_question')");
 
-                            t.HasCheckConstraint("CK_Questions_Difficulty", "Difficulty IN ('beginner', 'intermediate', 'advanced')");
+                            t.HasCheckConstraint("CK_Questions_Difficulty", "\"Difficulty\" IN ('beginner', 'intermediate', 'advanced')");
 
-                            t.HasCheckConstraint("CK_Questions_InteractionData", "InteractionData IS NULL OR json_valid(InteractionData)");
+                            t.HasCheckConstraint("CK_Questions_InteractionType", "\"InteractionType\" IN ('single_choice', 'multiple_choice', 'yes_no', 'unordered_selection', 'fixed_match', 'ordering', 'dropdown', 'yes_no_matrix', 'image_self_grade', 'image_hotspot')");
 
-                            t.HasCheckConstraint("CK_Questions_InteractionType", "InteractionType IN ('single_choice', 'multiple_choice', 'yes_no', 'unordered_selection', 'fixed_match', 'ordering', 'dropdown', 'yes_no_matrix', 'image_self_grade', 'image_hotspot')");
+                            t.HasCheckConstraint("CK_Questions_Mode", "\"Mode\" IN ('quiz', 'reveal', 'read')");
 
-                            t.HasCheckConstraint("CK_Questions_Mode", "Mode IN ('quiz', 'reveal', 'read')");
+                            t.HasCheckConstraint("CK_Questions_Status", "\"Status\" IN ('draft', 'published', 'archived')");
 
-                            t.HasCheckConstraint("CK_Questions_Status", "Status IN ('draft', 'published', 'archived')");
-
-                            t.HasCheckConstraint("CK_Questions_TableData", "TableData IS NULL OR json_valid(TableData)");
-
-                            t.HasCheckConstraint("CK_Questions_Type", "QuestionType IN ('multiple_choice', 'yes_no', 'drag_drop', 'hotspot', 'self_grade')");
+                            t.HasCheckConstraint("CK_Questions_Type", "\"QuestionType\" IN ('multiple_choice', 'yes_no', 'drag_drop', 'hotspot', 'self_grade')");
                         });
                 });
 
@@ -670,31 +683,31 @@ namespace SkillPath.Api.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("uuid");
 
                     b.Property<int?>("DurationSeconds")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<Guid?>("ExamAttemptId")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("uuid");
 
                     b.Property<bool?>("IsCorrect")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<Guid?>("PracticeSessionId")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("uuid");
 
                     b.Property<long>("QuestionId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
 
                     b.Property<string>("ResponseData")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("jsonb");
 
                     b.Property<DateTimeOffset>("SubmittedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -708,21 +721,19 @@ namespace SkillPath.Api.Data.Migrations
 
                     b.ToTable("QuestionAttempts", null, t =>
                         {
-                            t.HasCheckConstraint("CK_QuestionAttempts_Duration", "DurationSeconds IS NULL OR DurationSeconds >= 0");
+                            t.HasCheckConstraint("CK_QuestionAttempts_Duration", "\"DurationSeconds\" IS NULL OR \"DurationSeconds\" >= 0");
 
-                            t.HasCheckConstraint("CK_QuestionAttempts_OneSession", "NOT (PracticeSessionId IS NOT NULL AND ExamAttemptId IS NOT NULL)");
-
-                            t.HasCheckConstraint("CK_QuestionAttempts_ResponseData", "ResponseData IS NULL OR json_valid(ResponseData)");
+                            t.HasCheckConstraint("CK_QuestionAttempts_OneSession", "NOT (\"PracticeSessionId\" IS NOT NULL AND \"ExamAttemptId\" IS NOT NULL)");
                         });
                 });
 
             modelBuilder.Entity("SkillPath.Api.Models.QuestionAttemptSelection", b =>
                 {
                     b.Property<Guid>("QuestionAttemptId")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("uuid");
 
                     b.Property<long>("QuestionOptionId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
 
                     b.HasKey("QuestionAttemptId", "QuestionOptionId");
 
@@ -734,19 +745,19 @@ namespace SkillPath.Api.Data.Migrations
             modelBuilder.Entity("SkillPath.Api.Models.QuestionModule", b =>
                 {
                     b.Property<long>("QuestionId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
 
                     b.Property<long>("ModuleId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
 
                     b.Property<bool>("IsPrimary")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.HasKey("QuestionId", "ModuleId");
 
                     b.HasIndex("QuestionId")
                         .IsUnique()
-                        .HasFilter("IsPrimary = 1");
+                        .HasFilter("\"IsPrimary\" = TRUE");
 
                     b.HasIndex("ModuleId", "QuestionId");
 
@@ -757,25 +768,27 @@ namespace SkillPath.Api.Data.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<bool>("IsCorrect")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("OptionKey")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("OptionText")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<long>("QuestionId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
 
                     b.Property<short>("SortOrder")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("smallint");
 
                     b.HasKey("Id");
 
@@ -791,22 +804,22 @@ namespace SkillPath.Api.Data.Migrations
             modelBuilder.Entity("SkillPath.Api.Models.UserPathEnrollment", b =>
                 {
                     b.Property<Guid>("UserId")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("uuid");
 
                     b.Property<long>("LearningPathId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
 
                     b.Property<DateTimeOffset?>("CompletedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long?>("CurrentLessonId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("bigint");
 
                     b.Property<DateTimeOffset>("LastActivityAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset>("StartedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("UserId", "LearningPathId");
 
@@ -822,26 +835,26 @@ namespace SkillPath.Api.Data.Migrations
             modelBuilder.Entity("SkillPath.Api.Models.UserPreference", b =>
                 {
                     b.Property<Guid>("UserId")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Theme")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("TimeZone")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("UserId");
 
                     b.ToTable("UserPreferences", null, t =>
                         {
-                            t.HasCheckConstraint("CK_UserPreferences_Theme", "Theme IN ('light', 'dark', 'system')");
+                            t.HasCheckConstraint("CK_UserPreferences_Theme", "\"Theme\" IN ('light', 'dark', 'system')");
                         });
                 });
 
@@ -849,17 +862,17 @@ namespace SkillPath.Api.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Json")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("jsonb");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 

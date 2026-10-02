@@ -1,5 +1,6 @@
--- SkillPath relational schema
--- Target: SQL Server 2022 / Azure SQL
+-- Legacy SkillPath SQL Server design reference.
+-- The runtime database is PostgreSQL. EF Core migrations under
+-- backend/SkillPath.Api/Data/Migrations are the executable source of truth.
 
 SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;

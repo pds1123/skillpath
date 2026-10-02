@@ -6,12 +6,17 @@ using Microsoft.Extensions.DependencyInjection;
 using SkillPath.Api.Data;
 using SkillPath.Api.Models;
 using SkillPath.Api.Services;
+using Testcontainers.PostgreSql;
 
 namespace SkillPath.Api.Tests;
 
 public sealed class SkillPathWebApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly string databasePath = Path.Combine(Path.GetTempPath(), $"skillpath-tests-{Guid.NewGuid():N}.db");
+    private readonly PostgreSqlContainer postgres = new PostgreSqlBuilder("postgres:17-alpine")
+        .WithDatabase("skillpath_tests")
+        .WithUsername("skillpath")
+        .WithPassword("skillpath-test-password")
+        .Build();
 
     public long ChoiceQuestionId { get; private set; }
     public long MatchQuestionId { get; private set; }
@@ -25,7 +30,7 @@ public sealed class SkillPathWebApplicationFactory : WebApplicationFactory<Progr
         {
             configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["ConnectionStrings:SkillPath"] = $"Data Source={databasePath}",
+                ["ConnectionStrings:SkillPath"] = postgres.GetConnectionString(),
                 ["Testing:SkipSeed"] = "true",
             });
         });
@@ -33,6 +38,7 @@ public sealed class SkillPathWebApplicationFactory : WebApplicationFactory<Progr
 
     public async Task InitializeAsync()
     {
+        await postgres.StartAsync();
         _ = CreateClient();
         await using var scope = Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<SkillPathDbContext>();
@@ -161,6 +167,6 @@ public sealed class SkillPathWebApplicationFactory : WebApplicationFactory<Progr
     async Task IAsyncLifetime.DisposeAsync()
     {
         await DisposeAsync();
-        if (File.Exists(databasePath)) File.Delete(databasePath);
+        await postgres.DisposeAsync();
     }
 }

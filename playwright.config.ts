@@ -2,6 +2,8 @@ import { defineConfig, devices } from '@playwright/test';
 
 const webPort = 4173;
 const apiPort = 5055;
+const databaseConnection = process.env.SKILLPATH_E2E_CONNECTION_STRING
+  ?? 'Host=127.0.0.1;Port=55432;Database=skillpath_e2e;Username=skillpath;Password=skillpath-test-password';
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -23,7 +25,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: `Testing__SkipSeed=true ConnectionStrings__SkillPath="Data Source=App_Data/e2e-tests.db" dotnet run --project backend/SkillPath.Api --no-launch-profile --urls http://127.0.0.1:${apiPort}`,
+      command: `Testing__SkipSeed=true ConnectionStrings__SkillPath="${databaseConnection}" dotnet run --project backend/SkillPath.Api --no-launch-profile --urls http://127.0.0.1:${apiPort}`,
       url: `http://127.0.0.1:${apiPort}/api/health`,
       reuseExistingServer: false,
       timeout: 120_000,
