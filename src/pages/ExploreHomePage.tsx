@@ -39,7 +39,7 @@ export function ExploreHomePage({ onNavigate }: Props) {
           </div>
 
           <div className="grid auto-rows-fr gap-4 sm:grid-cols-2">
-            {LEARNING_AREAS.map(area => area.status === 'available' ? (
+            {LEARNING_AREAS.filter(area => area.status === 'available').map(area => (
               <button
                 type="button"
                 key={area.key}
@@ -59,29 +59,10 @@ export function ExploreHomePage({ onNavigate }: Props) {
                   Explore {area.name} <ArrowIcon />
                 </span>
               </button>
-            ) : (
-              <article key={area.key} className="flex min-h-[19rem] flex-col rounded-2xl bg-white p-6 ring-1 ring-[var(--sp-border)] sm:p-7">
-                <div className="flex items-center justify-between gap-4">
-                  <h3 className="text-xl font-semibold tracking-[-0.025em]">{area.name}</h3>
-                  <span className="rounded-md bg-[var(--sp-primary-50)] px-2 py-1 text-[11px] font-semibold text-[var(--sp-muted)]">Planned</span>
-                </div>
-                <p className="mt-6 text-sm leading-6 text-[var(--sp-muted)]">{area.description}</p>
-                <div className="mt-auto flex flex-wrap gap-1.5 pt-6" aria-label={`${area.name} concepts`}>
-                  {area.concepts.map(concept => (
-                    <span key={concept} className="rounded-md bg-[var(--sp-primary-50)] px-2 py-1 text-[11px] font-medium text-[var(--sp-ink-soft)]">{concept}</span>
-                  ))}
-                </div>
-              </article>
             ))}
           </div>
         </section>
 
-        <section className="mt-16 border-t border-[var(--sp-border)] pt-9" aria-labelledby="next-title">
-          <div className="max-w-2xl">
-            <h2 id="next-title" className="text-xl font-semibold tracking-[-0.025em]">More learning areas are planned</h2>
-            <p className="mt-2 text-sm leading-6 text-[var(--sp-muted)]">New beginner paths will be added as complete learning experiences become available.</p>
-          </div>
-        </section>
       </main>
     </div>
   );

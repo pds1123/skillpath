@@ -1,23 +1,25 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AppHeader } from '../components/AppHeader';
 
+import { getAiStatus, ApiError } from '../services/api';
+
 interface Props {
-  apiKey: string;
-  onSave: (key: string) => void;
   onNavigate: (page: string) => void;
   onReset: () => void;
 }
 
-export function SettingsPage({ apiKey, onSave, onNavigate, onReset }: Props) {
-  const [draft, setDraft] = useState(apiKey);
-  const [saved, setSaved] = useState(false);
+export function SettingsPage({ onNavigate, onReset }: Props) {
   const [confirmReset, setConfirmReset] = useState(false);
-
-  function save() {
-    onSave(draft.trim());
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  }
+  const [aiStatus, setAiStatus] = useState('Checking availability…');
+  useEffect(() => {
+    let active = true;
+    getAiStatus().then(status => {
+      if (active) setAiStatus(status.configured ? 'AI feedback is available.' : 'AI feedback is not configured. Contact the administrator.');
+    }).catch(error => {
+      if (active) setAiStatus(error instanceof ApiError && error.status === 401 ? 'Sign in to use AI feedback.' : 'Unable to check AI availability. Try again later.');
+    });
+    return () => { active = false; };
+  }, []);
 
   return (
     <div className="min-h-screen bg-[var(--sp-canvas)] text-[var(--sp-ink)]">
@@ -32,34 +34,10 @@ export function SettingsPage({ apiKey, onSave, onNavigate, onReset }: Props) {
         <div className="overflow-hidden rounded-2xl bg-[var(--sp-surface)] ring-1 ring-[var(--sp-border)]">
           <section className="p-6 sm:p-8" aria-labelledby="ai-settings-title">
             <div className="max-w-xl">
-              <h2 id="ai-settings-title" className="text-lg font-semibold tracking-[-0.02em] text-[var(--sp-ink-strong)]">AI explanations</h2>
-              <p className="mt-2 text-sm leading-6 text-[var(--sp-muted)]">
-                Add a Claude API key to generate extra explanations in the question library. The key is stored in this browser and sent only to Anthropic when you request an explanation.
-              </p>
-              <label htmlFor="claude-api-key" className="mt-6 block text-sm font-medium text-[var(--sp-ink)]">Claude API key</label>
-              <input
-                id="claude-api-key"
-                type="password"
-                value={draft}
-                onChange={e => setDraft(e.target.value)}
-                placeholder="sk-ant-..."
-                className="mt-2 w-full rounded-xl bg-[var(--sp-canvas)] px-4 py-3 font-mono text-sm text-[var(--sp-ink)] ring-1 ring-inset ring-[var(--sp-border-strong)] placeholder:text-[var(--sp-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--sp-primary-600)]"
-              />
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={save}
-                  className="rounded-xl bg-[var(--sp-primary-700)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--sp-primary-800)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sp-primary-600)]"
-                >
-                  {saved ? 'Saved' : 'Save API key'}
-                </button>
-                {draft && (
-                  <button type="button" onClick={() => { setDraft(''); onSave(''); }} className="rounded-lg px-3 py-2 text-sm font-medium text-[var(--sp-muted)] transition hover:bg-[var(--sp-primary-50)] hover:text-[var(--sp-ink)]">
-                    Remove key
-                  </button>
-                )}
-              </div>
-              <p className="mt-4 text-xs leading-5 text-[var(--sp-muted)]">Create a key at console.anthropic.com under API Keys. AI explanations use Claude Haiku.</p>
+              <h2 id="ai-settings-title" className="text-lg font-semibold tracking-[-0.02em] text-[var(--sp-ink-strong)]">AI analysis</h2>
+              <p className="mt-2 text-sm leading-6 text-[var(--sp-muted)]">{aiStatus}</p>
+              <p className="mt-3 text-sm leading-6 text-[var(--sp-muted)]">When you request AI analysis, your question, current answer and grading result are sent to Anthropic through SkillPath. Sign-in is required. AI analysis is optional.</p>
+
             </div>
           </section>
 

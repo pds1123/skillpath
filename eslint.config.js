@@ -7,6 +7,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
   globalIgnores([
+    '**/._*', // macOS metadata files copied with the project are not source code.
     'dist',
     'coverage',
     'playwright-report',

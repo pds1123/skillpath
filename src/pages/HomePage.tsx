@@ -5,6 +5,8 @@ import type { CertificationKey, Question } from '../types/questions';
 import { AppHeader } from '../components/AppHeader';
 import { useCurriculum } from '../hooks/useCurriculum';
 import type { CurriculumModule } from '../types/curriculum';
+import { PracticeDashboard } from '../components/PracticeDashboard';
+import { useAuth } from '../auth/useAuth';
 
 interface Props {
   progress: ProgressState;
@@ -64,6 +66,7 @@ function learningStreak(progress: ProgressState): number {
 }
 
 export function HomePage({ progress, onNavigate, activeCert }: Props) {
+  const { user } = useAuth();
   const certQuestions = useMemo(() => questionsForCert(activeCert), [activeCert]);
   const { curriculum, loading, error, reload } = useCurriculum(activeCert);
   const modules = useMemo(() => curriculum?.modules ?? [], [curriculum]);
@@ -135,7 +138,8 @@ export function HomePage({ progress, onNavigate, activeCert }: Props) {
 
         {!loading && !error && current && (
           <section className="relative mb-12 overflow-hidden rounded-2xl bg-[var(--sp-primary-900)] p-6 text-white shadow-[0_22px_55px_rgba(48,46,118,0.2)] sm:p-8" aria-labelledby="continue-title">
-            <div className="relative max-w-2xl">
+            <div className="relative grid gap-6 lg:grid-cols-[1fr_1.1fr] lg:gap-8">
+            <div className="min-w-0">
               <p className="text-xs font-semibold tracking-[0.09em] text-[var(--sp-on-primary-muted)]">Continue learning</p>
               <div className="mt-5 flex items-start gap-4">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 text-xs font-semibold tabular-nums tracking-[0.08em] text-[var(--sp-on-primary)] ring-1 ring-white/10">
@@ -161,8 +165,14 @@ export function HomePage({ progress, onNavigate, activeCert }: Props) {
                 </div>
               </div>
             </div>
+            <div className="min-w-0 border-t border-white/15 pt-5 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+              <PracticeDashboard key={`${user?.id ?? 'guest'}:${activeCert}`} activeCert={activeCert} progress={progress} onNavigate={onNavigate} />
+            </div>
+            </div>
           </section>
         )}
+
+        {!loading && !error && !current && <section className="mb-12 rounded-2xl bg-[var(--sp-primary-900)] p-6 sm:p-8"><PracticeDashboard key={`${user?.id ?? 'guest'}:${activeCert}`} activeCert={activeCert} progress={progress} onNavigate={onNavigate} /></section>}
 
         {!loading && !error && <section className="mb-14" aria-labelledby="learning-path-title">
           <div className="mb-5 flex items-end justify-between gap-4">

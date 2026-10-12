@@ -4,10 +4,26 @@ using Microsoft.EntityFrameworkCore;
 using SkillPath.Api.Data;
 using SkillPath.Api.Models;
 using SkillPath.Api.Services;
+using System.Security.Claims;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.AddMemoryCache(options => options.SizeLimit = 500);
+builder.Services.AddHttpClient("anthropic", client => client.Timeout = TimeSpan.FromSeconds(35));
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("ai-feedback", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode = 429;
+        context.HttpContext.Response.Headers.RetryAfter = "60";
+        await context.HttpContext.Response.WriteAsJsonAsync(new { message = "Too many AI requests. Please wait a minute and retry." }, token);
+    };
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -23,9 +39,10 @@ builder.Services.AddDbContext<SkillPathDbContext>((services, options) =>
     var configuration = services.GetRequiredService<IConfiguration>();
     var configuredConnection = configuration.GetConnectionString("SkillPath")
         ?? throw new InvalidOperationException("Connection string 'SkillPath' is missing.");
-    options.UseNpgsql(configuredConnection, npgsql => npgsql.EnableRetryOnFailure());
+    options.UseNpgsql(configuredConnection);
 });
 builder.Services.AddScoped<DatabaseDataStore>();
+builder.Services.AddScoped<PracticeDashboard>();
 builder.Services.AddScoped<CurriculumRevisionService>();
 builder.Services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
 builder.Services
@@ -101,6 +118,7 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 app.MapControllers();
 app.MapGet("/api/health", async (SkillPathDbContext db, CancellationToken cancellationToken) =>
     await db.Database.CanConnectAsync(cancellationToken)

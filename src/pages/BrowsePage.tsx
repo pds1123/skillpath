@@ -5,6 +5,7 @@ import type { Question, CertificationKey } from '../types/questions';
 import type { ProgressState } from '../hooks/useProgress';
 import { CTFL_QUESTION_IMAGES, QUESTION_IMAGES } from '../data/questionImages';
 import { InteractiveExam } from '../components/InteractiveExam';
+import { QuestionAiAnalysis } from '../components/QuestionAiAnalysis';
 import type { InteractiveSubmission } from '../types/questionEngine';
 import { AppHeader } from '../components/AppHeader';
 import { QuestionSourceBadge } from '../components/QuestionSourceBadge';
@@ -17,7 +18,6 @@ import {
 interface Props {
   progress: ProgressState;
   onNavigate: (page: string) => void;
-  apiKey: string;
   activeCert: CertificationKey;
 }
 
@@ -58,71 +58,12 @@ function extractRefs(raw: string): string[] {
   return urls.map(u => u.replace(/[.,;|)\]]+$/, ''));
 }
 
-// ─── Tiny markdown renderer for AI analysis ───────────────────────────────────
-function renderInline(text: string): React.ReactNode[] {
-  const parts: React.ReactNode[] = [];
-  const re = /\*\*(.+?)\*\*|`(.+?)`/g;
-  let last = 0;
-  let m: RegExpExecArray | null;
-  let key = 0;
-  while ((m = re.exec(text)) !== null) {
-    if (m.index > last) parts.push(text.slice(last, m.index));
-    if (m[1]) parts.push(<strong key={key++} className="font-semibold text-gray-900">{m[1]}</strong>);
-    else if (m[2]) parts.push(<code key={key++} className="rounded bg-[var(--sp-primary-100)] px-1 py-0.5 font-mono text-[11px] text-[var(--sp-primary-800)]">{m[2]}</code>);
-    last = m.index + m[0].length;
-  }
-  if (last < text.length) parts.push(text.slice(last));
-  return parts;
-}
-
-function MarkdownLite({ text }: { text: string }) {
-  const lines = text.split('\n');
-  const blocks: React.ReactNode[] = [];
-  let listBuf: string[] = [];
-  let i = 0;
-
-  function flushList() {
-    if (listBuf.length === 0) return;
-    blocks.push(
-      <ul key={`ul-${blocks.length}`} className="list-disc pl-4 space-y-0.5 my-1">
-        {listBuf.map((item, j) => <li key={j}>{renderInline(item)}</li>)}
-      </ul>
-    );
-    listBuf = [];
-  }
-
-  for (const raw of lines) {
-    const line = raw.trim();
-    if (!line) { flushList(); continue; }
-    const h = line.match(/^(#{1,3})\s+(.+)$/);
-    const li = line.match(/^[-*]\s+(.+)$/);
-    if (h) {
-      flushList();
-      const level = h[1].length;
-      const cls = level === 1
-        ? 'text-sm font-bold text-[var(--sp-primary-900)] mt-2 mb-1'
-        : level === 2
-          ? 'text-xs font-bold text-[var(--sp-primary-800)] mt-2 mb-0.5'
-          : 'text-xs font-semibold text-[var(--sp-primary-700)] mt-1.5 mb-0.5';
-      blocks.push(<p key={i++} className={cls}>{renderInline(h[2])}</p>);
-    } else if (li) {
-      listBuf.push(li[1]);
-    } else {
-      flushList();
-      blocks.push(<p key={i++} className="leading-relaxed">{renderInline(line)}</p>);
-    }
-  }
-  flushList();
-  return <div className="text-xs text-gray-700 space-y-1">{blocks}</div>;
-}
-
 // ─── Single Question Card ─────────────────────────────────────────────────────
 function QuestionCard({
-  question, index, progress, apiKey,
+  question, index, progress,
 }: {
   question: Question; index: number;
   progress: ProgressState;
-  apiKey: string;
 }) {
   const [showAnswer, setShowAnswer] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
@@ -138,9 +79,7 @@ function QuestionCard({
   const [answerArea, setAnswerArea] = useState<string[]>([]);
   const [dragResult, setDragResult] = useState<boolean | null>(null);
   const [dragOver, setDragOver] = useState<'pool' | 'answer' | null>(null);
-  const [aiText, setAiText] = useState(() => localStorage.getItem(`ai_cache_${question.id}`) ?? '');
-  const [aiLoading, setAiLoading] = useState(false);
-  const [showAi, setShowAi] = useState(() => !!localStorage.getItem(`ai_cache_${question.id}`));
+  const [aiSubmission, setAiSubmission] = useState<InteractiveSubmission | null>(null);
 
   const pastAttempts = progress.results[question.id] ?? [];
   const lastAttempt = pastAttempts[pastAttempts.length - 1];
@@ -303,88 +242,13 @@ function QuestionCard({
       const result = await submitQuestionAnswer(question.id, [], submission);
       setAnswer(result);
       setInteractiveResult(result.correct);
+      setAiSubmission(submission);
       setShowAnswer(true);
     } catch (error) {
       setAnswerError(error instanceof Error ? error.message : 'Unable to check this answer.');
     } finally {
       setAnswerLoading(false);
     }
-  }
-
-  // ── AI ────────────────────────────────────────────────────────────────────────
-  async function fetchAI() {
-    if (!apiKey) { setAiText('Add your Claude API key in Settings.'); setShowAi(true); return; }
-    setAiLoading(true); setShowAi(true);
-    try {
-      const answerInfo = correctAnswers.length > 0
-        ? `Correct answer: ${correctAnswers.map(l => `${l}. ${question.options[l] ?? ''}`).join('; ')}`
-        : answerText ? `Answer: ${answerText}` : 'Answer not available';
-      const optText = Object.entries(question.options).map(([l, t]) => `${l}. ${t}`).join('\n');
-
-      // For hotspot/match/yesno/dropdown: include structured prompts from interactive data
-      let interactiveContext = '';
-      const solution = answer?.correctInteraction && 'answers' in answer.correctInteraction
-        ? answer.correctInteraction.answers
-        : [];
-      if (interactive && interactive.kind !== 'self_grade' && interactive.kind !== 'click') {
-        if (interactive.kind === 'yesno') {
-          interactiveContext = '\nStatements (Yes/No):\n' +
-            interactive.prompts.map((p, i) => `${i + 1}. [${solution[i] ?? 'Answer unavailable'}] ${p.text}`).join('\n');
-        } else if (interactive.kind === 'dropdown') {
-          interactiveContext = '\nStatements (fill-in-the-blank):\n' +
-            interactive.prompts.map((p, i) =>
-              `${i + 1}. ${p.text}\n   Options: ${(p.options ?? []).join(' | ')}\n   Correct: ${solution[i] ?? 'Answer unavailable'}`
-            ).join('\n');
-        } else if (interactive.kind === 'match') {
-          interactiveContext = '\nDrag-drop matching:\n' +
-            `Pool: ${interactive.pool.join(', ')}\n` +
-            interactive.prompts.map((p, i) => `${i + 1}. "${p.text}" → ${solution[i] ?? 'Answer unavailable'}`).join('\n');
-        }
-      }
-
-      const prompt = `You are a cloud fundamentals tutor. Explain this question concisely (under 150 words).
-
-Question: ${question.question}
-${optText ? '\nOptions:\n' + optText : ''}${interactiveContext}
-${answerInfo}
-
-IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the trusted answer key. Do NOT contradict them, even if you personally think a different answer is more logical. Your job is to explain WHY the given correct answers are right, why the wrong ones are wrong, and give a brief real-world context. Be direct.`;
-
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5',
-          max_tokens: 350,
-          messages: [{ role: 'user', content: prompt }],
-        }),
-      });
-      const data = await res.json();
-      let text: string;
-      if (data.content?.[0]?.text) {
-        text = data.content[0].text;
-        localStorage.setItem(`ai_cache_${question.id}`, text);
-      } else {
-        const errMsg = data.error?.message ?? 'Unknown error';
-        const errType = data.error?.type ?? '';
-        if (errType === 'overloaded_error' || /overloaded/i.test(errMsg)) {
-          text = 'Claude API is currently overloaded. Please wait a moment and select "AI Analysis" again.';
-        } else if (errType === 'rate_limit_error' || /rate.?limit/i.test(errMsg)) {
-          text = 'Rate limit reached. Please wait a minute and retry.';
-        } else if (errType === 'authentication_error' || /api.?key/i.test(errMsg)) {
-          text = 'API key issue: ' + errMsg + '\n\nCheck your API key in Settings.';
-        } else {
-          text = 'Error: ' + errMsg;
-        }
-      }
-      setAiText(text);
-    } catch { setAiText('Network error. Check your internet connection and API key.'); }
-    setAiLoading(false);
   }
 
   // ── Render ────────────────────────────────────────────────────────────────────
@@ -899,23 +763,14 @@ IMPORTANT: The correct answer(s) above are AUTHORITATIVE — they come from the 
           </div>
         )}
 
-        {/* AI Analysis */}
-        {!showAi ? (
-          <button
-            onClick={fetchAI}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--sp-primary-200)] bg-[var(--sp-primary-50)] py-2.5 text-sm font-medium text-[var(--sp-primary-800)] transition-colors hover:bg-[var(--sp-primary-100)]"
-          >
-            AI Analysis
-          </button>
-        ) : (
-          <div className="mt-3 rounded-xl border border-[var(--sp-primary-200)] bg-[var(--sp-primary-50)] p-4">
-            <p className="mb-1.5 text-xs font-semibold text-[var(--sp-primary-800)]">AI analysis</p>
-            {aiLoading
-              ? <p className="animate-pulse text-xs text-[var(--sp-primary-500)]">Analyzing...</p>
-              : <MarkdownLite text={aiText} />
-            }
-          </div>
-        )}
+        {answer && <QuestionAiAnalysis
+          key={JSON.stringify([question.id, selected, aiSubmission, mcResult, interactiveResult, pastAttempts])}
+          question={question}
+          correctAnswers={correctAnswers}
+          answerText={answerText}
+          solution={answer.correctInteraction}
+          feedback={{ selectedAnswers: selected, submission: aiSubmission, correct: mcResult ?? interactiveResult }}
+        />}
       </div>
     </article>
   );
@@ -954,7 +809,7 @@ function QuestionNav({ currentId, visitedIds, onJump, questions }: {
 }
 
 // ─── Browse Page ──────────────────────────────────────────────────────────────
-export function BrowsePage({ progress, onNavigate, apiKey, activeCert }: Props) {
+export function BrowsePage({ progress, onNavigate, activeCert }: Props) {
   const certQuestions = useMemo(() => questionsForCert(activeCert), [activeCert]);
   const certDomains = useMemo(() => domainsForCert(activeCert), [activeCert]);
   const lastIdStorageKey = `browse_last_id_${activeCert}`;
@@ -1114,7 +969,6 @@ export function BrowsePage({ progress, onNavigate, apiKey, activeCert }: Props) 
               question={question}
               index={idx}
               progress={progress}
-              apiKey={apiKey}
             />
             {/* Bottom nav */}
             <div className="mt-4 flex gap-3 pb-8">

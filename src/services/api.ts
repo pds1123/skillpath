@@ -21,6 +21,46 @@ export class ApiError extends Error {
   }
 }
 
+export async function getAiStatus(): Promise<{ configured: boolean }> {
+  return await request<{ configured: boolean }>('/api/ai/status') ?? { configured: false };
+}
+
+export interface PracticeDashboardData {
+  certification: string;
+  practiced: number;
+  firstCorrect: number;
+  latestCorrect: number;
+  toReview: number;
+  firstAccuracy: number | null;
+  latestAccuracy: number | null;
+  lastAttemptAt: number | null;
+  modules: Array<{ id: number; slug: string; name: string; practiced: number; correct: number; accuracy: number | null; smallSample: boolean }>;
+}
+
+export async function getPracticeDashboard(certification: string): Promise<PracticeDashboardData> {
+  return await request<PracticeDashboardData>(`/api/dashboard?certification=${encodeURIComponent(certification)}`) as PracticeDashboardData;
+}
+
+export async function generatePracticeSummary(certification: string): Promise<{ text: string; generatedAt: string }> {
+  return await request<{ text: string; generatedAt: string }>('/api/ai/summary', {
+    method: 'POST', headers: { 'X-SkillPath-Request': 'ai-feedback' }, body: JSON.stringify({ certification }),
+  }) as { text: string; generatedAt: string };
+}
+
+export async function requestAiFeedback(questionId: number, prompt: string): Promise<string> {
+  try {
+    const result = await request<{ text: string }>('/api/ai/feedback', {
+      method: 'POST', headers: { 'X-SkillPath-Request': 'ai-feedback' },
+      body: JSON.stringify({ questionId, prompt }),
+    });
+    if (!result?.text) throw new Error('AI returned no feedback. Please retry.');
+    return result.text;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) throw new Error('Sign in to use AI feedback.', { cause: error });
+    throw error;
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T | undefined> {
   const response = await fetch(path, {
     ...init,

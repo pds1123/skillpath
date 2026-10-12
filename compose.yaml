@@ -41,6 +41,9 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__SkillPath: Host=postgres;Port=5432;Database=skillpath;Username=skillpath;Password=${POSTGRES_PASSWORD:-skillpath-dev-password}
       Admin__BootstrapEmail: ${ADMIN_BOOTSTRAP_EMAIL:-}
+      Anthropic__ApiKey: ${ANTHROPIC_API_KEY:-}
+      Anthropic__Model: ${ANTHROPIC_MODEL:-claude-haiku-4-5}
+      Anthropic__WorkspaceId: ${ANTHROPIC_WORKSPACE_ID:-}
     depends_on:
       postgres:
         condition: service_healthy

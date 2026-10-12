@@ -24,21 +24,16 @@ export function QaTestingPage({ onNavigate, setCertification }: Props) {
           <span className="font-medium text-[var(--sp-ink-soft)]">QA &amp; Testing</span>
         </nav>
 
-        <header className="mt-8 max-w-3xl">
-          <h1 className="text-3xl font-semibold tracking-[-0.035em] text-[var(--sp-ink-strong)] sm:text-4xl">QA &amp; Testing</h1>
-          <p className="mt-3 text-sm leading-6 text-[var(--sp-muted)]">
-            Start with one structured beginner tutorial covering the foundations of software testing.
-          </p>
-        </header>
+        <h1 className="sr-only">QA &amp; Testing tutorials</h1>
 
-        <section className="mt-10" aria-label="Available QA and testing tutorials">
+        <section className="mt-8" aria-label="Available QA and testing tutorials">
           <div className="grid gap-4 md:grid-cols-2">
             <LearningEntryCard
               number="01"
               level="Beginner"
-              title="ISTQB CTFL"
+              title="Software Testing Fundamentals"
               description="Learn testing fundamentals, test design, static testing, risk, test management, and test tools."
-              note="Certification prep available"
+              note="Practice questions available"
               action="Open tutorial"
               onClick={openTutorial}
             />

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect } from 'react';
 import {
   Navigate,
   Route,
@@ -19,7 +19,6 @@ import { useAuth } from './auth/useAuth';
 type Page = 'home' | 'cloud' | 'qa' | 'tutorial' | 'browse' | 'modules' | 'practice' | 'certification' | 'exam' | 'examReview' | 'settings' | 'login' | 'admin' | 'adminQuestion' | 'adminModules' | 'adminModule' | 'adminLessons' | 'adminLesson';
 type NavigateTo = (page: string, params?: Record<string, string>) => void;
 
-const API_KEY_STORAGE = 'skillpath_claude_api_key';
 const PRACTICE_MODES = new Set<PracticeMode>(['quick', 'weak', 'mistakes']);
 
 const HomePage = lazy(() => import('./pages/HomePage').then(module => ({ default: module.HomePage })));
@@ -68,7 +67,7 @@ function pagePath(page: string, params: Record<string, string> = {}) {
       return '/questions';
     case 'modules':
       return params.module || params.domain
-        ? `/learning/modules/${encodeURIComponent(params.module ?? params.domain)}`
+        ? `/learning/modules/${encodeURIComponent(params.module ?? params.domain)}${params.tab === 'practice' ? '?tab=practice' : ''}`
         : '/learning/modules';
     case 'practice':
       return `/practice/${PRACTICE_MODES.has(params.mode as PracticeMode) ? params.mode : 'quick'}`;
@@ -116,7 +115,6 @@ function ModulesRoute({
   onKnowledgeCheckPositionChange,
   onNavigate,
   activeCert,
-  apiKey,
 }: {
   progress: ProgressState;
   onAnswer: (questionId: number, correct: boolean, selected: string[]) => void;
@@ -124,7 +122,6 @@ function ModulesRoute({
   onKnowledgeCheckPositionChange: (moduleKey: string, questionIndex: number | null) => void;
   onNavigate: NavigateTo;
   activeCert: CertificationKey;
-  apiKey: string;
 }) {
   const { moduleKey } = useParams();
 
@@ -137,7 +134,6 @@ function ModulesRoute({
       onNavigate={onNavigate}
       initialModule={moduleKey ? decodeURIComponent(moduleKey) : undefined}
       activeCert={activeCert}
-      apiKey={apiKey}
     />
   );
 }
@@ -194,9 +190,12 @@ export default function App() {
   const routerNavigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const [apiKey, setApiKey] = useState(() =>
-    localStorage.getItem(API_KEY_STORAGE) ?? localStorage.getItem('az900_claude_api_key') ?? ''
-  );
+  useEffect(() => {
+    try {
+      localStorage.removeItem('skillpath_claude_api_key');
+      localStorage.removeItem('az900_claude_api_key');
+    } catch { /* Storage may be disabled. No browser key is needed. */ }
+  }, []);
   const {
     state,
     recordAnswer,
@@ -243,10 +242,6 @@ export default function App() {
     document.title = titleByPath.find(([pattern]) => pattern.test(location.pathname))?.[1] ?? 'SkillPath';
   }, [location.pathname]);
 
-  function saveApiKey(key: string) {
-    setApiKey(key);
-    localStorage.setItem(API_KEY_STORAGE, key);
-  }
 
   return (
     <Suspense fallback={<RouteLoading />}>
@@ -265,11 +260,10 @@ export default function App() {
             onKnowledgeCheckPositionChange={setKnowledgeCheckPosition}
             onNavigate={navigate}
             activeCert={cert.active}
-            apiKey={apiKey}
           />
         )}
       />
-      <Route path="/questions" element={<BrowsePage progress={state} onNavigate={navigate} apiKey={apiKey} activeCert={cert.active} />} />
+      <Route path="/questions" element={<BrowsePage progress={state} onNavigate={navigate} activeCert={cert.active} />} />
       <Route
         path="/practice/:mode"
         element={<PracticeRoute progress={state} onAnswer={recordAnswer} onNavigate={navigate} activeCert={cert.active} />}
@@ -291,7 +285,7 @@ export default function App() {
         path="/certification/mock-assessment/:attemptId/review"
         element={<ExamReviewRoute progress={state} onNavigate={navigate} />}
       />
-      <Route path="/settings" element={<SettingsPage apiKey={apiKey} onSave={saveApiKey} onNavigate={navigate} onReset={resetProgress} />} />
+      <Route path="/settings" element={<SettingsPage onNavigate={navigate} onReset={resetProgress} />} />
       <Route path="/login" element={<LoginPage onNavigate={navigate} />} />
       <Route path="/admin" element={<Navigate to="/admin/questions" replace />} />
       <Route path="/admin/questions" element={<AdminAccess><AdminQuestionsPage onNavigate={navigate} /></AdminAccess>} />

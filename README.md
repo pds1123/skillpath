@@ -145,6 +145,22 @@ dotnet user-secrets --project backend/SkillPath.Api set \
 
 ## Run with Docker
 
+### Optional AI feedback
+
+Claude requests are made by the API server. Users must sign in; browser Settings only shows availability and never accepts an API key. Old browser-stored Claude keys are removed when the updated app loads. No existing key is automatically transferred to the server.
+
+For local development, configure `Anthropic:ApiKey` with .NET user-secrets for `backend/SkillPath.Api`, or set `Anthropic__ApiKey` in the backend process environment. Do not use a `VITE_` variable for secrets. `Anthropic:Model` defaults to `claude-haiku-4-5`.
+
+On Windows, run `powershell -ExecutionPolicy Bypass -File scripts/set-ai-key.ps1` from the project directory. It asks for the key with hidden input and sends it to user-secrets through standard input, keeping it out of command history. Restart the API after configuring the key.
+
+If Anthropic reports that the key is not scoped to a workspace, configure `Anthropic:WorkspaceId` using user-secrets, or `Anthropic__WorkspaceId` in the API environment. Docker Compose accepts `ANTHROPIC_WORKSPACE_ID`. The API will include the `anthropic-workspace-id` header. A workspace-scoped key does not need this additional setting. The Workspace ID is a configuration identifier, not the API key.
+
+For Docker, supply `ANTHROPIC_API_KEY` in the environment before starting Compose. Keep keys out of source control, image build arguments and frontend bundles. User-secrets are for local development; use your hosting provider's secret store in production.
+
+The feedback endpoint accepts a published question ID and at most 12,000 characters of feedback context. It allows five requests per user per minute, caps output at 650 tokens, and times out after 30 seconds. Successful responses are cached per user and input for one hour, up to 500 entries. Limits and cache are in memory per API instance and reset when it restarts; deployments with multiple replicas should use shared quotas. Rate limits are not a daily spending cap. Configure provider spending limits separately.
+
+Without a server key, learning still works and AI feedback returns a clear unavailable message. Provider error details and credentials are never forwarded to the browser.
+
 Docker packages the React frontend and ASP.NET Core API into one application and runs PostgreSQL as a separate service. Only Docker Desktop is required; Node.js and the .NET SDK do not need to be installed on the host for this mode.
 
 Start it with:

@@ -1,112 +1,53 @@
 import { useState } from 'react';
-import type React from 'react';
+import Markdown from 'react-markdown';
 import type { Question } from '../types/questions';
+import type { InteractionSolution } from '../types/questionEngine';
+import { buildFeedbackPrompt, type LearnerFeedback } from '../services/aiFeedback';
+
+import { requestAiFeedback } from '../services/api';
 
 interface Props {
-  apiKey: string;
   question: Question;
   correctAnswers: string[];
   answerText?: string | null;
-}
-
-function renderInline(text: string): React.ReactNode[] {
-  const parts: React.ReactNode[] = [];
-  const pattern = /\*\*(.+?)\*\*|`(.+?)`/g;
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-  let key = 0;
-
-  while ((match = pattern.exec(text)) !== null) {
-    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
-    if (match[1]) parts.push(<strong key={key++} className="font-semibold text-[var(--sp-ink)]">{match[1]}</strong>);
-    if (match[2]) parts.push(<code key={key++} className="rounded bg-white/70 px-1 py-0.5 font-mono text-[11px] text-[var(--sp-primary-800)]">{match[2]}</code>);
-    lastIndex = match.index + match[0].length;
-  }
-
-  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
-  return parts;
+  solution?: InteractionSolution | null;
+  feedback: LearnerFeedback;
 }
 
 function AnalysisText({ text }: { text: string }) {
-  const lines = text.split('\n');
   return (
-    <div className="space-y-1 text-xs leading-5 text-[var(--sp-ink-soft)]">
-      {lines.map((rawLine, index) => {
-        const line = rawLine.trim();
-        if (!line) return null;
-        const listItem = line.match(/^[-*]\s+(.+)$/);
-        return listItem
-          ? <p key={index} className="pl-3 before:mr-2 before:content-['•']">{renderInline(listItem[1])}</p>
-          : <p key={index}>{renderInline(line)}</p>;
-      })}
+    <div className="space-y-3 text-sm leading-6 text-[var(--sp-ink-soft)] [overflow-wrap:anywhere] [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-5 [&_li>p]:my-1 [&_strong]:font-semibold [&_strong]:text-[var(--sp-ink)] [&_em]:italic [&_hr]:my-5 [&_hr]:border-[var(--sp-primary-200)] [&_a]:text-[var(--sp-primary-800)] [&_a]:underline [&_a]:underline-offset-2 [&_blockquote]:border-l-2 [&_blockquote]:border-[var(--sp-primary-200)] [&_blockquote]:pl-4 [&_code]:rounded [&_code]:bg-white/70 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-xs [&_pre]:overflow-x-auto [&_pre]:p-3">
+      <Markdown
+        skipHtml
+        disallowedElements={['img']}
+        components={{
+          h1: ({ children }) => <h3 className="pt-1 text-base font-semibold leading-6 text-[var(--sp-ink)]">{children}</h3>,
+          h2: ({ children }) => <h4 className="pt-2 text-sm font-semibold leading-6 text-[var(--sp-ink)]">{children}</h4>,
+          h3: ({ children }) => <h5 className="pt-1 text-sm font-semibold leading-6 text-[var(--sp-ink)]">{children}</h5>,
+          h4: ({ children }) => <h6 className="text-sm font-semibold text-[var(--sp-ink)]">{children}</h6>,
+          h5: ({ children }) => <h6 className="text-sm font-semibold text-[var(--sp-ink)]">{children}</h6>,
+          h6: ({ children }) => <h6 className="text-sm font-semibold text-[var(--sp-ink)]">{children}</h6>,
+        }}
+      >{text}</Markdown>
     </div>
   );
 }
 
-function tutorFor(question: Question) {
-  if (question.certification === 'CTFL') return 'software testing tutor';
-  if (question.certification === 'CLF-C02') return 'AWS cloud fundamentals tutor';
-  return 'Microsoft Azure fundamentals tutor';
-}
-
-function errorMessage(data: { error?: { message?: string; type?: string } }) {
-  const message = data.error?.message ?? 'Unknown error';
-  const type = data.error?.type ?? '';
-  if (type === 'overloaded_error' || /overloaded/i.test(message)) return 'Claude API is currently overloaded. Please wait a moment and try again.';
-  if (type === 'rate_limit_error' || /rate.?limit/i.test(message)) return 'Rate limit reached. Please wait a minute and retry.';
-  if (type === 'authentication_error' || /api.?key/i.test(message)) return `API key issue: ${message}\n\nCheck your API key in Settings.`;
-  return `Error: ${message}`;
-}
-
-export function QuestionAiAnalysis({ apiKey, question, correctAnswers, answerText }: Props) {
-  const cacheKey = `ai_cache_${question.id}`;
-  const [analysis, setAnalysis] = useState(() => localStorage.getItem(cacheKey) ?? '');
-  const [visible, setVisible] = useState(() => Boolean(localStorage.getItem(cacheKey)));
+export function QuestionAiAnalysis({ question, correctAnswers, answerText, solution, feedback }: Props) {
+  const prompt = buildFeedbackPrompt(question, correctAnswers, answerText, solution, feedback);
+  const [analysis, setAnalysis] = useState('');
+  const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function analyze() {
-    if (!apiKey) {
-      setAnalysis('Add your Claude API key in Settings.');
-      setVisible(true);
-      return;
-    }
+    if (loading) return;
 
     setLoading(true);
     setVisible(true);
     try {
-      const options = Object.entries(question.options).map(([letter, text]) => `${letter}. ${text}`).join('\n');
-      const correctAnswer = correctAnswers.length > 0
-        ? correctAnswers.map(letter => `${letter}. ${question.options[letter] ?? ''}`).join('; ')
-        : 'Answer not available';
-      const prompt = `You are a ${tutorFor(question)}. Explain this question concisely in under 150 words.
-
-Question: ${question.question}
-${options ? `\nOptions:\n${options}` : ''}
-Correct answer: ${correctAnswer}
-${answerText ? `Answer-key explanation: ${answerText}` : ''}
-
-The correct answer above is authoritative. Explain why it is correct, why the other options are wrong, and give brief practical context. Do not contradict the answer key.`;
-
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5',
-          max_tokens: 350,
-          messages: [{ role: 'user', content: prompt }],
-        }),
-      });
-      const data = await response.json() as { content?: Array<{ text?: string }>; error?: { message?: string; type?: string } };
-      const generated = data.content?.[0]?.text ?? errorMessage(data);
-      if (data.content?.[0]?.text) localStorage.setItem(cacheKey, generated);
-      setAnalysis(generated);
-    } catch {
-      setAnalysis('Network error. Check your internet connection and API key.');
+      setAnalysis(await requestAiFeedback(question.id, prompt));
+    } catch (error) {
+      setAnalysis(error instanceof Error ? error.message : 'Unable to request AI feedback. Please retry.');
     } finally {
       setLoading(false);
     }
@@ -130,6 +71,7 @@ The correct answer above is authoritative. Explain why it is correct, why the ot
       {loading
         ? <p className="animate-pulse text-xs text-[var(--sp-primary-500)]">Analyzing...</p>
         : <AnalysisText text={analysis} />}
+      {!loading && <button type="button" onClick={() => void analyze()} className="mt-3 text-xs font-semibold underline">Try again</button>}
     </div>
   );
 }

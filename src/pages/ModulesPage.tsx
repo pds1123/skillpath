@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { questionsForCert, quizQuestionsForCert } from '../data/questionCatalog';
 import type { CertificationKey, Question } from '../types/questions';
 import type { ProgressState } from '../hooks/useProgress';
@@ -19,7 +20,6 @@ interface Props {
   onNavigate: (page: string, params?: Record<string, string>) => void;
   initialModule?: string;
   activeCert: CertificationKey;
-  apiKey: string;
 }
 
 function progressForModule(module: CurriculumModule, questions: Question[], progress: ProgressState) {
@@ -80,7 +80,7 @@ function ModuleList({ modules, progress, questions, onSelect }: {
 
 type ModuleTab = 'learn' | 'practice';
 
-function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onKnowledgeCheckPositionChange, onBack, activeCert, apiKey }: {
+function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onKnowledgeCheckPositionChange, onBack, activeCert }: {
   module: CurriculumModule;
   progress: ProgressState;
   onAnswer: (id: number, correct: boolean, selected: string[]) => void;
@@ -88,8 +88,8 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onKnowledgeC
   onKnowledgeCheckPositionChange: (moduleKey: string, questionIndex: number | null) => void;
   onBack: () => void;
   activeCert: CertificationKey;
-  apiKey: string;
 }) {
+  const [searchParams] = useSearchParams();
   const lessons = module.lessons;
   const practiceQuestions = useMemo(
     () => quizQuestionsForCert(activeCert).filter(question => module.questionIds.includes(question.id)),
@@ -100,11 +100,12 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onKnowledgeC
     Math.max(progress.knowledgeCheckPositions[module.key] ?? 0, 0),
     Math.max(practiceQuestions.length - 1, 0),
   );
-  const [tab, setTab] = useState<ModuleTab>(() => hasSavedKnowledgeCheck || lessons.length === 0 ? 'practice' : 'learn');
+  const [tab, setTab] = useState<ModuleTab>(() => searchParams.get('tab') === 'practice' || hasSavedKnowledgeCheck || lessons.length === 0 ? 'practice' : 'learn');
   const [practiceIndex, setPracticeIndex] = useState(savedPracticeIndex);
   const [selected, setSelected] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const [grade, setGrade] = useState<AnswerGrade | null>(null);
+  const [aiSubmission, setAiSubmission] = useState<InteractiveSubmission | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [openLesson, setOpenLesson] = useState(0);
@@ -118,6 +119,7 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onKnowledgeC
     setSelected([]);
     setSubmitted(false);
     setGrade(null);
+    setAiSubmission(null);
     setSubmitting(false);
     setSubmitError(null);
   }
@@ -172,6 +174,7 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onKnowledgeC
     setSubmitError(null);
     try {
       const result = await submitQuestionAnswer(question.id, [], submission);
+      setAiSubmission(submission);
       setGrade(result);
       setSubmitted(true);
       onAnswer(question.id, result.correct, []);
@@ -370,10 +373,11 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onKnowledgeC
                     {grade && (
                       <QuestionAiAnalysis
                         key={question.id}
-                        apiKey={apiKey}
                         question={question}
                         correctAnswers={grade.correctAnswer}
                         answerText={grade.explanation}
+                        solution={grade.correctInteraction}
+                        feedback={{ selectedAnswers: selected, submission: aiSubmission, correct: grade.correct }}
                       />
                     )}
                   </>
@@ -423,7 +427,7 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onKnowledgeC
   );
 }
 
-export function ModulesPage({ progress, onAnswer, onToggleLesson, onKnowledgeCheckPositionChange, onNavigate, initialModule, activeCert, apiKey }: Props) {
+export function ModulesPage({ progress, onAnswer, onToggleLesson, onKnowledgeCheckPositionChange, onNavigate, initialModule, activeCert }: Props) {
   const { curriculum, loading, error, reload } = useCurriculum(activeCert);
   const modules = useMemo(() => curriculum?.modules ?? [], [curriculum]);
   const questions = useMemo(() => questionsForCert(activeCert), [activeCert]);
@@ -487,7 +491,6 @@ export function ModulesPage({ progress, onAnswer, onToggleLesson, onKnowledgeChe
             onKnowledgeCheckPositionChange={onKnowledgeCheckPositionChange}
             onBack={() => onNavigate('modules')}
             activeCert={activeCert}
-            apiKey={apiKey}
           />
         )}
       </main>
