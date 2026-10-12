@@ -8,7 +8,8 @@ test('navigates between learning areas with real routes', async ({ page }) => {
   await page.getByRole('button', { name: /Explore Cloud/ }).click();
 
   await expect(page).toHaveURL(/\/cloud$/);
-  await expect(page.getByRole('heading', { level: 1, name: 'Cloud platforms' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Microsoft Azure' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Amazon Web Services' })).toBeVisible();
 });
 
 test('registers a learner and restores the authenticated session', async ({ page }) => {
