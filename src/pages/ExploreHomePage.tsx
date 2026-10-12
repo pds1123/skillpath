@@ -35,7 +35,6 @@ export function ExploreHomePage({ onNavigate }: Props) {
               <h2 id="categories-title" className="text-2xl font-semibold tracking-[-0.03em]">Learning areas</h2>
               <p className="mt-1.5 text-sm text-[var(--sp-muted)]">Start with a broad direction. Choose a tutorial when you are ready.</p>
             </div>
-            <span className="hidden text-xs text-[var(--sp-muted-light)] sm:block">Concept-led beginner learning</span>
           </div>
 
           <div className="grid auto-rows-fr gap-4 sm:grid-cols-2">
@@ -63,6 +62,12 @@ export function ExploreHomePage({ onNavigate }: Props) {
           </div>
         </section>
 
+        <section className="mt-16 border-t border-[var(--sp-border)] pt-9" aria-labelledby="next-title">
+          <div className="max-w-2xl">
+            <h2 id="next-title" className="text-xl font-semibold tracking-[-0.025em]">More learning areas are planned</h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--sp-muted)]">New beginner paths will be added as complete learning experiences become available.</p>
+          </div>
+        </section>
       </main>
     </div>
   );
