@@ -37,6 +37,7 @@ lerna-debug.log*
 # ─── Private data — NEVER commit ─────────────────────────────────────────────
 # One place for local-only source material, personal notes, imports, and exports.
 /.local/
+/docs/TECHNICAL.zh-CN.md
 
 # The real question banks, interactive data, image manifest, and question
 # images are kept locally only. Public repo uses the *.example.ts stubs.

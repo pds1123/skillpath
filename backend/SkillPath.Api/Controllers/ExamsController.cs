@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using SkillPath.Api.Contracts;
 using SkillPath.Api.Data;
@@ -10,8 +11,18 @@ namespace SkillPath.Api.Controllers;
 
 [ApiController]
 [Route("api/exams")]
-public sealed class ExamsController(SkillPathDbContext db) : ControllerBase
+public sealed class ExamsController(SkillPathDbContext db, ExamAnalysis analysis) : ControllerBase
 {
+    [Authorize]
+    [HttpGet("{id:guid}/analysis")]
+    public async Task<IActionResult> Analysis(Guid id, CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+        var snapshot = await analysis.Get(userId.Value, id, cancellationToken);
+        return snapshot is null ? NotFound(new ApiError("Exam attempt was not found.")) : Ok(snapshot);
+    }
+
     [HttpPost("grade")]
     public async Task<ActionResult<GradeExamResponse>> Grade(GradeExamRequest request)
     {

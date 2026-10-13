@@ -17,6 +17,7 @@ export interface ProgressState {
 }
 
 export interface ExamAttempt {
+  simulated?: boolean;
   id: string;
   date: number;
   score: number;

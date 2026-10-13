@@ -2,6 +2,7 @@ import { questionsForCert } from '../data/questionCatalog';
 import type { ProgressState } from '../hooks/useProgress';
 import type { Question } from '../types/questions';
 import { AppHeader } from '../components/AppHeader';
+import { ExamAnalysisPanel } from '../components/ExamAnalysisPanel';
 
 interface Props {
   progress: ProgressState;
@@ -161,34 +162,16 @@ export function ExamReviewPage({ progress, attemptId, onNavigate }: Props) {
           <div className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center">
             <div className="text-4xl font-semibold tracking-[-0.04em] text-[var(--sp-ink-strong)]">{pct}%</div>
             <div className="flex-1 text-sm text-[var(--sp-muted)]">
-              <h2 id="review-summary-title" className="font-semibold text-[var(--sp-ink-strong)]">Mock assessment</h2>
+              <h2 id="review-summary-title" className="font-semibold text-[var(--sp-ink-strong)]">{attempt.simulated ? 'Mock assessment · Simulated data' : 'Mock assessment'}</h2>
               <p className="mt-1">{attempt.score} of {attempt.total} correct · {Math.floor(attempt.durationSec / 60)} min {attempt.durationSec % 60}s</p>
             </div>
             <span className={`self-start rounded-full px-3 py-1 text-xs font-semibold ${pass ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-700'}`}>
               {pass ? 'Passed' : 'More practice recommended'}
             </span>
           </div>
-          <div className="border-t border-[var(--sp-border)] px-6 py-5">
-          <h3 className="mb-3 text-sm font-semibold text-[var(--sp-ink-strong)]">By topic</h3>
-          <div className="flex flex-col gap-3">
-            {Object.entries(attempt.domainScores).map(([domain, s]) => {
-              const dpct = s.total > 0 ? Math.round((s.correct / s.total) * 100) : 0;
-              return (
-                <div key={domain} className="flex items-center gap-3 text-xs">
-                  <span className="flex-1 text-[var(--sp-ink)]">{domain}</span>
-                  <span className="text-[var(--sp-muted)]">{s.correct}/{s.total}</span>
-                  <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[var(--sp-primary-100)]">
-                    <div
-                      className={`h-full ${dpct >= 70 ? 'bg-green-500' : 'bg-[var(--sp-primary-500)]'}`}
-                      style={{ width: `${dpct}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          </div>
         </section>
+
+        <ExamAnalysisPanel key={attempt.id} attemptId={attempt.id} />
 
         <div className="space-y-4">
           {questions.map((q, i) => {

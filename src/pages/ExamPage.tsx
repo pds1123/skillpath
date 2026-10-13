@@ -3,6 +3,7 @@ import { CERTIFICATIONS, quizQuestionsForCert } from '../data/questionCatalog';
 import type { Question, CertificationKey } from '../types/questions';
 import { CTFL_QUESTION_IMAGES, QUESTION_IMAGES } from '../data/questionImages';
 import { Timer } from '../components/Timer';
+import { ExamAnalysisPanel } from '../components/ExamAnalysisPanel';
 import { InteractiveExam } from '../components/InteractiveExam';
 import { QuestionSourceBadge } from '../components/QuestionSourceBadge';
 import type { ExamAttempt } from '../hooks/useProgress';
@@ -156,7 +157,7 @@ export function ExamPage({ onNavigate, onExamComplete, activeCert }: Props) {
 
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--sp-canvas)] px-5">
-        <div className="w-full max-w-lg rounded-2xl bg-white p-8 text-center ring-1 ring-[var(--sp-border)] sm:p-10">
+        <div className="my-8 w-full max-w-2xl rounded-2xl bg-white p-6 text-center ring-1 ring-[var(--sp-border)] sm:p-8">
           <p className={`mx-auto mb-4 w-fit rounded-full px-3 py-1 text-xs font-semibold ${pass ? 'bg-green-100 text-green-800' : 'bg-[var(--sp-primary-100)] text-[var(--sp-primary-800)]'}`}>{pass ? 'Passed' : 'More practice recommended'}</p>
           <h2 className="mb-1 text-2xl font-semibold tracking-[-0.03em] text-[var(--sp-ink-strong)]">Assessment complete</h2>
           <p className="mb-6 text-sm text-[var(--sp-muted)]">Mock assessment · Practice only</p>
@@ -164,6 +165,7 @@ export function ExamPage({ onNavigate, onExamComplete, activeCert }: Props) {
             {Math.round(pct * 100)}%
           </div>
           <p className="mb-8 text-sm text-[var(--sp-muted)]">{score} of {examGrade.total} correct · Target: {Math.round(passScore * 100)}%</p>
+          <ExamAnalysisPanel key={examGrade.attemptId} attemptId={examGrade.attemptId} />
           <div className="flex gap-3">
             <button
               onClick={() => onNavigate('tutorial')}

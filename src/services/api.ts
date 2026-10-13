@@ -47,6 +47,26 @@ export async function generatePracticeSummary(certification: string): Promise<{ 
   }) as { text: string; generatedAt: string };
 }
 
+export interface ExamAnalysisData {
+  attemptId: string;
+  certification: string;
+  score: number;
+  total: number;
+  durationSeconds: number;
+  finishedAt: string | null;
+  modules: Array<{ id: number; name: string; total: number; correct: number; accuracy: number | null; smallSample: boolean }>;
+}
+
+export async function getExamAnalysis(attemptId: string): Promise<ExamAnalysisData> {
+  return await request<ExamAnalysisData>(`/api/exams/${encodeURIComponent(attemptId)}/analysis`) as ExamAnalysisData;
+}
+
+export async function generateExamSummary(attemptId: string): Promise<{ text: string; generatedAt: string }> {
+  return await request<{ text: string; generatedAt: string }>('/api/ai/exam-summary', {
+    method: 'POST', headers: { 'X-SkillPath-Request': 'ai-feedback' }, body: JSON.stringify({ attemptId }),
+  }) as { text: string; generatedAt: string };
+}
+
 export async function requestAiFeedback(questionId: number, prompt: string): Promise<string> {
   try {
     const result = await request<{ text: string }>('/api/ai/feedback', {

@@ -43,6 +43,7 @@ builder.Services.AddDbContext<SkillPathDbContext>((services, options) =>
 });
 builder.Services.AddScoped<DatabaseDataStore>();
 builder.Services.AddScoped<PracticeDashboard>();
+builder.Services.AddScoped<ExamAnalysis>();
 builder.Services.AddScoped<CurriculumRevisionService>();
 builder.Services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
 builder.Services

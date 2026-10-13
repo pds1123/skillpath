@@ -111,6 +111,38 @@ public sealed class AiIntegrationTests(SkillPathWebApplicationFactory factory) :
         Assert.Equal(2, stub.Calls);
     }
 
+    [Fact]
+    public async Task ExamSummary_UsesOnlySelectedExam_AndCachesPerExam()
+    {
+        var stub = new ProviderStub(HttpStatusCode.OK);
+        using var app = factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureAppConfiguration((_, c) => c.AddInMemoryCollection(new Dictionary<string, string?>
+            { ["Anthropic:ApiKey"] = "server-test-secret", ["Anthropic:WorkspaceId"] = "wrkspc_test" }));
+            builder.ConfigureServices(services => services.AddHttpClient("anthropic").ConfigurePrimaryHttpMessageHandler(() => stub));
+        });
+        using var client = app.CreateClient();
+        await Register(client);
+        client.DefaultRequestHeaders.Add("X-SkillPath-Request", "ai-feedback");
+        var ids = new List<Guid>();
+        foreach (var answer in new[] { "A", "B" })
+        {
+            var response = await client.PostAsJsonAsync("/api/exams/grade", new
+            { certification = "TEST", durationSeconds = 60, answers = new[] { new { questionId = factory.ChoiceQuestionId, selectedAnswers = new[] { answer } } } });
+            response.EnsureSuccessStatusCode();
+            ids.Add((await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("attemptId").GetGuid());
+        }
+        (await client.PostAsJsonAsync("/api/ai/exam-summary", new { attemptId = ids[0] })).EnsureSuccessStatusCode();
+        Assert.Contains(ids[0].ToString(), stub.LastBody);
+        Assert.DoesNotContain(ids[1].ToString(), stub.LastBody);
+        Assert.DoesNotContain("Which option is the expected answer", stub.LastBody);
+        Assert.DoesNotContain("@example.test", stub.LastBody);
+        (await client.PostAsJsonAsync("/api/ai/exam-summary", new { attemptId = ids[0] })).EnsureSuccessStatusCode();
+        Assert.Equal(1, stub.Calls);
+        (await client.PostAsJsonAsync("/api/ai/exam-summary", new { attemptId = ids[1] })).EnsureSuccessStatusCode();
+        Assert.Equal(2, stub.Calls);
+    }
+
     private static async Task Register(HttpClient client)
     {
         var response = await client.PostAsJsonAsync("/api/auth/register", new
