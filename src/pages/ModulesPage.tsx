@@ -327,7 +327,7 @@ function ModuleDetail({ module, progress, onAnswer, onToggleLesson, onKnowledgeC
               <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--sp-muted)]">
                 <span>Question {practiceIndex + 1} of {practiceQuestions.length}</span>
                 <div className="flex flex-wrap items-center justify-end gap-2">
-                  <QuestionSourceBadge references={question.sourceReferences} />
+                  <QuestionSourceBadge question={question} />
                   <span className="rounded-md bg-[var(--sp-primary-100)] px-2 py-1 font-medium text-[var(--sp-primary-700)]">{module.name}</span>
                 </div>
               </div>

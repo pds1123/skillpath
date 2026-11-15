@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using SkillPath.Api.Models;
 using SkillPath.Api.Services;
@@ -8,6 +9,7 @@ namespace SkillPath.Api.Data;
 public static class IstqbCtflSeeder
 {
     private const string CertificationCode = "CTFL";
+    private static readonly Regex PdfHeader = new(@"[ \t]*\bExams\s+Prep\s+ISTQB\s*-\s*ISTQB-CTFL\b[ \t]*", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         PropertyNameCaseInsensitive = true,
@@ -109,6 +111,10 @@ public static class IstqbCtflSeeder
         await db.SaveChangesAsync();
         await SeedLessonsAsync(db, modulesBySlug, logger);
 
+        // Keep historical attempts while removing questions exclusive to the 399 source.
+        await db.Questions.Where(item => item.SourceKey.StartsWith("CTFL399:") && item.Status != "archived")
+            .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.Status, "archived"));
+
         var path = Path.Combine(environment.ContentRootPath, "App_Data", "istqb-ctfl.seed.json");
         if (!File.Exists(path))
         {
@@ -123,6 +129,11 @@ public static class IstqbCtflSeeder
             .Where(item => item.SourceKey.StartsWith("CTFL"))
             .ToDictionaryAsync(item => item.SourceKey, StringComparer.OrdinalIgnoreCase);
         var existingQuestionIds = existingQuestions.Values.Select(item => item.Id).ToList();
+        var contaminatedOptions = await db.QuestionOptions
+            .Where(item => existingQuestionIds.Contains(item.QuestionId) && EF.Functions.ILike(item.OptionText, "%Exams%Prep%ISTQB%"))
+            .ToListAsync();
+        foreach (var option in contaminatedOptions)
+            option.OptionText = RemovePdfHeader(option.OptionText);
         var existingCertificationMappings = await db.CertificationQuestions
             .Where(item => item.CertificationId == certification.Id && existingQuestionIds.Contains(item.QuestionId))
             .ToDictionaryAsync(item => item.QuestionId);
@@ -135,12 +146,13 @@ public static class IstqbCtflSeeder
 
         foreach (var questionSeed in seed.Questions)
         {
+            if (questionSeed.SourceKey.StartsWith("CTFL399:", StringComparison.OrdinalIgnoreCase)) continue;
             if (!modulesByName.TryGetValue(questionSeed.Domain, out var module))
                 throw new InvalidOperationException($"Unknown CTFL module mapping: {questionSeed.Domain}");
 
             if (existingQuestions.TryGetValue(questionSeed.SourceKey, out var existingQuestion))
             {
-                existingQuestion.Prompt = questionSeed.Prompt;
+                existingQuestion.Prompt = RemovePdfHeader(questionSeed.Prompt);
                 existingQuestion.SourceAttribution = questionSeed.SourceAttribution ?? "ctfl_278";
                 existingQuestion.SourceReference = questionSeed.SourceReference;
                 existingQuestion.Status = questionSeed.Status ?? "published";
@@ -148,8 +160,8 @@ public static class IstqbCtflSeeder
                 existingQuestion.InteractionType = questionSeed.Options.Count(option => option.IsCorrect) > 1
                     ? QuestionInteractionTypes.MultipleChoice
                     : QuestionInteractionTypes.SingleChoice;
-                if (string.IsNullOrWhiteSpace(existingQuestion.Explanation))
-                    existingQuestion.Explanation = questionSeed.Explanation;
+                var explanation = string.IsNullOrWhiteSpace(existingQuestion.Explanation) ? questionSeed.Explanation : existingQuestion.Explanation;
+                existingQuestion.Explanation = explanation is null ? null : RemovePdfHeader(explanation);
                 existingQuestion.TableData = SerializeOptional(questionSeed.TableData);
                 if (existingCertificationMappings.TryGetValue(existingQuestion.Id, out var certificationMapping))
                     certificationMapping.DomainName = questionSeed.Domain;
@@ -179,8 +191,8 @@ public static class IstqbCtflSeeder
                     ? QuestionInteractionTypes.MultipleChoice
                     : QuestionInteractionTypes.SingleChoice,
                 ContentType = "mock_question",
-                Prompt = questionSeed.Prompt,
-                Explanation = questionSeed.Explanation,
+                Prompt = RemovePdfHeader(questionSeed.Prompt),
+                Explanation = questionSeed.Explanation is null ? null : RemovePdfHeader(questionSeed.Explanation),
                 TableData = SerializeOptional(questionSeed.TableData),
                 Mode = "quiz",
                 Difficulty = "beginner",
@@ -198,7 +210,7 @@ public static class IstqbCtflSeeder
             {
                 QuestionId = question.Id,
                 OptionKey = option.Key,
-                OptionText = option.Text,
+                OptionText = RemovePdfHeader(option.Text),
                 SortOrder = (short)(index + 1),
                 IsCorrect = option.IsCorrect,
             }));
@@ -222,6 +234,8 @@ public static class IstqbCtflSeeder
             synchronized,
             seed.SkippedImageQuestions.Count);
     }
+
+    private static string RemovePdfHeader(string value) => PdfHeader.IsMatch(value) ? PdfHeader.Replace(value, " ").Trim() : value;
 
     private static string? SerializeOptional(JsonElement? value) =>
         value is { ValueKind: not JsonValueKind.Null and not JsonValueKind.Undefined } element

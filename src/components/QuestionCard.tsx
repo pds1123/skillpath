@@ -124,7 +124,7 @@ export function QuestionCard({ question, questionNumber, totalQuestions, onAnswe
             {modeLabel}
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <QuestionSourceBadge references={question.sourceReferences} />
+            <QuestionSourceBadge question={question} />
             <span className="px-2 py-0.5 rounded-md bg-[var(--sp-primary-100)] text-[var(--sp-primary-700)] text-xs font-medium">
               {question.domain}
             </span>

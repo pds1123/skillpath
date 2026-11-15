@@ -263,7 +263,7 @@ function QuestionCard({
           <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-[var(--sp-primary-800)] ring-1 ring-[var(--sp-border)]">
             {question.domain}
           </span>
-          <QuestionSourceBadge references={question.sourceReferences} />
+          <QuestionSourceBadge question={question} />
         </div>
         <div className="p-8 text-center text-[var(--sp-muted)]">
           <svg className="mx-auto mb-3 h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -284,7 +284,7 @@ function QuestionCard({
         <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-[var(--sp-primary-800)] ring-1 ring-[var(--sp-border)]">
           {question.domain}
         </span>
-        <QuestionSourceBadge references={question.sourceReferences} />
+        <QuestionSourceBadge question={question} />
         {!['single_choice', 'multiple_choice', 'yes_no'].includes(question.type) && (
           <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 font-medium capitalize">
             {question.type.replace('_', ' ')}

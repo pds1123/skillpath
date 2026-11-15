@@ -89,6 +89,7 @@ const MODULES = [
 function cleanInline(value) {
   return value
     .replace(/\f/g, '\n')
+    .replace(/\bExams\s+Prep\s+ISTQB\s*-\s*ISTQB-CTFL\b/gi, ' ')
     .replace(/^\s*\[\d{4}\/\d{2}\]\s*$/gm, '')
     .replace(/^\s*https?:\/\/\S+\s*$/gm, '')
     .replace(/^\s*All CTFL v?\d+(?:\.\d+)? Questions\s*$/gim, '')

@@ -90,6 +90,7 @@ const MODULES = [
 function cleanInline(value) {
   return value
     .replace(/\f/g, '\n')
+    .replace(/\bExams\s+Prep\s+ISTQB\s*-\s*ISTQB-CTFL\b/gi, ' ')
     .replace(/^\s*(?:Exams Prep.*ISTQB|Top IT Certification Prep Material.*|IMPORTANT NOTICE.*)$/gim, '')
     .replace(/^\s*\d+\s+of\s+\d+\s*$/gim, '')
     .replace(/^\s*[A-F]\.\s*$/gm, '')
@@ -282,7 +283,7 @@ for (const secondaryQuestion of secondaryQuestions) {
     options: secondaryQuestion.options,
     tableData: secondaryQuestion.tableData,
     explanation: secondaryQuestion.explanation,
-    status: 'published',
+    status: 'archived',
   });
 }
 
@@ -307,7 +308,7 @@ const distribution = Object.fromEntries(
   MODULES.map(module => [module.name, questions.filter(question => question.domain === module.name).length]),
 );
 console.log(`Merged ${primaryQuestions.length} source-278 questions with ${secondaryQuestions.length} source-399 questions.`);
-console.log(`Marked ${duplicatePairs.length} questions as shared and published ${newQuestions.length} source-399-only questions.`);
+console.log(`Marked ${duplicatePairs.length} questions as shared and archived ${newQuestions.length} source-399-only questions.`);
 console.log(`Kept the source-278 answer for ${answerConflicts.length} conflicting duplicates.`);
 console.log(`Wrote ${questions.length} total questions to ${destination}`);
 console.log('Module distribution:', distribution);
